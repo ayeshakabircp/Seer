@@ -429,13 +429,16 @@ const s: Record<string, React.CSSProperties> = {
   header: {
     textAlign: "center",
     marginBottom: 32,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
   },
   title: {
     fontFamily: "'Cormorant Unicase', serif",
     fontSize: 56,
     fontWeight: 500,
     color: "#fff",
-    margin: "0 0 12px",
+    margin: "0 0 24px",
     letterSpacing: "normal",
   },
   subtitle: {
