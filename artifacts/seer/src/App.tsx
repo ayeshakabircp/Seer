@@ -311,19 +311,52 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
   );
 }
 
+// ── Loading Screen ───────────────────────────────────────────────────────────
+
+function LoadingScreen() {
+  const messages = [
+    "Analysing your design...",
+    "Looking for patterns...",
+    "Preparing your critique...",
+    "Almost ready...",
+  ];
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % messages.length);
+    }, 2000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div style={s.loadingScreen}>
+      <div style={{ fontSize: 64 }}>🔮</div>
+      <p style={s.loadingText}>{messages[msgIndex]}</p>
+    </div>
+  );
+}
+
 // ── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [image, setImage] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData | null>(null);
 
+  const [loading, setLoading] = useState(false);
+
   const handleReset = () => {
     setImage(null);
     setFormData(null);
+    setLoading(false);
   };
 
   useEffect(() => {
-    if (formData) console.log("Ready for reading:", formData);
+    if (formData) {
+      setLoading(true);
+      // API call goes here in Frame 5
+      setTimeout(() => setLoading(false), 4000); // placeholder
+    }
   }, [formData]);
 
   return (
@@ -340,11 +373,13 @@ export default function App() {
         onReset={handleReset}
       />
 
-      {image && !formData && (
+      {image && !formData && !loading && (
         <FadeIn delay={100}>
           <ContextForm onReady={setFormData} />
         </FadeIn>
       )}
+
+      {loading && <LoadingScreen />}
     </div>
   );
 }
@@ -546,5 +581,20 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: 1,
     cursor: "pointer",
     transition: "box-shadow 0.2s ease",
+  },
+  loadingScreen: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "60vh",
+    gap: 24,
+  },
+  loadingText: {
+    color: "#8a7aaa",
+    fontSize: 18,
+    fontFamily: "Georgia, serif",
+    margin: 0,
+    letterSpacing: 1,
   },
 };
