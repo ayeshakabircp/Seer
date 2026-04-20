@@ -808,8 +808,7 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: "flex-start",
   },
   leftCol: {
-    width: 340,
-    flexShrink: 0,
+    flex: "0 0 60%",
     display: "flex",
     flexDirection: "column",
     gap: 16,
@@ -817,7 +816,7 @@ const s: Record<string, React.CSSProperties> = {
     top: 40,
   },
   rightCol: {
-    flex: 1,
+    flex: "0 0 40%",
     display: "flex",
     flexDirection: "column",
     gap: 12,
