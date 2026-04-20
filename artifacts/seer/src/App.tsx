@@ -161,6 +161,7 @@ interface FormData {
 function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
   const [step, setStep] = useState(1);
   const [productType, setProductType] = useState<string | null>(null);
+  const [isOther, setIsOther] = useState(false);
   const [primaryUsers, setPrimaryUsers] = useState("");
   const [constraints, setConstraints] = useState("");
   const [criteria, setCriteria] = useState<Record<string, boolean>>(initialCriteria);
@@ -184,7 +185,7 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
           <QuestionLabel>What kind of product is this?</QuestionLabel>
           <div style={s.pillRow}>
             {PRODUCT_TYPES.map((type) => {
-              const active = productType === type;
+              const active = type === "Other" ? isOther : productType === type && !isOther;
               return (
                 <button
                   key={type}
@@ -196,7 +197,13 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
                   }}
                   onClick={() => {
                     setProductType(type);
-                    if (step === 1) setStep(2);
+                    if (type !== "Other") {
+                      setIsOther(false);
+                      if (step === 1) setStep(2);
+                    } else {
+                      setIsOther(true);
+                      setProductType("Other");
+                    }
                   }}
                 >
                   {type}
@@ -204,6 +211,18 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
               );
             })}
           </div>
+          {isOther && (
+            <input
+              autoFocus
+              type="text"
+              placeholder="Describe your product type"
+              style={s.textInput}
+              onChange={(e) => {
+                setProductType(e.target.value);
+                if (step === 1 && e.target.value.trim()) setStep(2);
+              }}
+            />
+          )}
         </div>
       </FadeIn>
 
