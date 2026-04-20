@@ -16,13 +16,13 @@ const CRITERIA_OPTIONS = [
 
 const PRODUCT_TYPES = ["Web App", "Mobile App", "Dashboard", "Internal Tool", "Other"];
 
-const initialCriteria = CRITERIA_OPTIONS.reduce<Record<string, boolean>>(
+const initialCriteria = CRITERIA_OPTIONS.reduce(
   (acc, c) => ({ ...acc, [c.id]: c.default }), {}
 );
 
 // ── Reusable primitives ──────────────────────────────────────────────────────
 
-function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function FadeIn({ children, delay = 0 }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), delay);
@@ -39,15 +39,15 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
-function QuestionLabel({ children }: { children: React.ReactNode }) {
+function QuestionLabel({ children }) {
   return <p style={s.questionLabel}>{children}</p>;
 }
 
-function Hint({ children }: { children: React.ReactNode }) {
+function Hint({ children }) {
   return <p style={s.hint}>{children}</p>;
 }
 
-function GhostButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function GhostButton({ onClick, children }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -61,7 +61,7 @@ function GhostButton({ onClick, children }: { onClick: () => void; children: Rea
   );
 }
 
-function PrimaryButton({ onClick, children, disabled }: { onClick: () => void; children: React.ReactNode; disabled?: boolean }) {
+function PrimaryButton({ onClick, children, disabled }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -82,23 +82,23 @@ function PrimaryButton({ onClick, children, disabled }: { onClick: () => void; c
 
 // ── Upload Zone ──────────────────────────────────────────────────────────────
 
-function UploadZone({ image, onFile, onReset }: { image: string | null; onFile: (src: string) => void; onReset: () => void }) {
+function UploadZone({ image, onFile, onReset }) {
   const [isDragging, setIsDragging] = useState(false);
 
-  const processFile = (file: File | null | undefined) => {
+  const processFile = (file) => {
     if (!file || !file.type.startsWith("image/")) return;
     const reader = new FileReader();
-    reader.onload = (e) => onFile(e.target?.result as string);
+    reader.onload = (e) => onFile(e.target.result);
     reader.readAsDataURL(file);
   };
 
-  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const onDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
     processFile(e.dataTransfer.files[0]);
   }, []);
 
-  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
+  const onDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const onDragLeave = () => setIsDragging(false);
 
   const borderColor = isDragging ? "#7b2ff7" : image ? "#7b2ff760" : "#3d1f6e";
@@ -111,7 +111,7 @@ function UploadZone({ image, onFile, onReset }: { image: string | null; onFile: 
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        onClick={() => !image && document.getElementById("fileInput")?.click()}
+        onClick={() => !image && document.getElementById("fileInput").click()}
       >
         {image ? (
           <div style={s.previewWrap}>
@@ -133,7 +133,7 @@ function UploadZone({ image, onFile, onReset }: { image: string | null; onFile: 
         <input
           id="fileInput" type="file" accept="image/*"
           style={{ display: "none" }}
-          onChange={(e) => processFile(e.target.files?.[0])}
+          onChange={(e) => processFile(e.target.files[0])}
         />
       </div>
 
@@ -151,21 +151,14 @@ function UploadZone({ image, onFile, onReset }: { image: string | null; onFile: 
 
 // ── Context Form ─────────────────────────────────────────────────────────────
 
-interface FormData {
-  productType: string | null;
-  primaryUsers: string;
-  constraints: string;
-  criteria: string[];
-}
-
-function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
+function ContextForm({ onReady }) {
   const [step, setStep] = useState(1);
-  const [productType, setProductType] = useState<string | null>(null);
+  const [productType, setProductType] = useState(null);
   const [primaryUsers, setPrimaryUsers] = useState("");
   const [constraints, setConstraints] = useState("");
-  const [criteria, setCriteria] = useState<Record<string, boolean>>(initialCriteria);
+  const [criteria, setCriteria] = useState(initialCriteria);
 
-  const toggleCriteria = (id: string) =>
+  const toggleCriteria = (id) =>
     setCriteria((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const selectedCriteria = CRITERIA_OPTIONS
@@ -295,14 +288,16 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
 // ── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [image, setImage] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData | null>(null);
+  const [image, setImage] = useState(null);
+  const [formData, setFormData] = useState(null);
 
   const handleReset = () => {
     setImage(null);
     setFormData(null);
   };
 
+  // formData signals move to next frame (loading → results)
+  // For now we just log it — Frame 3 wired in next step
   useEffect(() => {
     if (formData) console.log("Ready for reading:", formData);
   }, [formData]);
@@ -332,7 +327,7 @@ export default function App() {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
-const s: Record<string, React.CSSProperties> = {
+const s = {
   page: {
     minHeight: "100vh",
     background: "#1a0a2e",
