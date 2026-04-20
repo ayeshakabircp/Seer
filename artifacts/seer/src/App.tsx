@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import bgImage from "@assets/f9b26700-c806-4dd2-a868-164b6d07915a_1776700081671.jpg";
+import crystalBall from "@assets/649b2204-13ae-41aa-b601-0b4763883612-Photoroom_1776700638205.png";
 
 const CRITERIA_OPTIONS = [
   { id: "navigation", label: "Navigation", default: true },
@@ -332,7 +333,7 @@ function LoadingScreen() {
 
   return (
     <div style={s.loadingScreen}>
-      <div style={{ fontSize: 64 }}>🔮</div>
+      <img src={crystalBall} alt="Crystal ball" style={{ width: 64, height: 64, objectFit: "contain" }} />
       <p style={s.loadingText}>{messages[msgIndex]}</p>
     </div>
   );
@@ -376,7 +377,7 @@ export default function App() {
       <img src={bgImage} style={s.bgImage} alt="" />
       <div style={s.content}>
       <header style={s.header}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🔮</div>
+        <img src={crystalBall} alt="Crystal ball" style={{ width: 48, height: 48, marginBottom: 12, objectFit: "contain" }} />
         <h1 style={s.title}>Seer</h1>
         <p style={s.subtitle}>Upload your design. Get real critique.</p>
       </header>
