@@ -411,7 +411,7 @@ const s: Record<string, React.CSSProperties> = {
     width: "100%",
     height: "100%",
     objectFit: "cover",
-    opacity: 0.8,
+    opacity: 0.5,
     zIndex: 0,
     pointerEvents: "none",
   },
