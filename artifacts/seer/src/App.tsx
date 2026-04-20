@@ -359,6 +359,14 @@ export default function App() {
     }
   }, [formData]);
 
+  if (loading) {
+    return (
+      <div style={s.page}>
+        <LoadingScreen />
+      </div>
+    );
+  }
+
   return (
     <div style={s.page}>
       <header style={s.header}>
@@ -373,13 +381,11 @@ export default function App() {
         onReset={handleReset}
       />
 
-      {image && !formData && !loading && (
+      {image && !formData && (
         <FadeIn delay={100}>
           <ContextForm onReady={setFormData} />
         </FadeIn>
       )}
-
-      {loading && <LoadingScreen />}
     </div>
   );
 }
