@@ -51,6 +51,10 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
       opacity: visible ? 1 : 0,
       transform: visible ? "translateY(0)" : "translateY(10px)",
       transition: "opacity 0.3s ease, transform 0.3s ease",
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
     }}>
       {children}
     </div>
