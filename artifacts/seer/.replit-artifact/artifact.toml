@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Seer"
+version = "1.0.0"
+id = "artifacts/seer"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18239
+
+[services.development]
+run = "pnpm --filter @workspace/seer run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/seer", "run", "build" ]
+publicDir = "artifacts/seer/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18239"
+BASE_PATH = "/"
