@@ -145,7 +145,7 @@ function UploadZone({ image, onFile, onReset }: { image: string | null; onFile: 
           <div style={s.uploadPrompt}>
             <div style={s.uploadArrow}>↑</div>
             <p style={s.uploadText}>Drop your screenshot here</p>
-            <p style={s.uploadSub}>PNG or JPG · or paste a Figma link below</p>
+            <p style={s.uploadSub}>PNG or JPG </p>
           </div>
         )}
         <input
@@ -154,7 +154,6 @@ function UploadZone({ image, onFile, onReset }: { image: string | null; onFile: 
           onChange={(e) => processFile(e.target.files?.[0])}
         />
       </div>
-
       {!image && (
         <input
           type="text"
