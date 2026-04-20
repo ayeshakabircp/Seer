@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import bgImage from "@assets/f9b26700-c806-4dd2-a868-164b6d07915a_1776700081671.jpg";
-import crystalBall from "@assets/649b2204-13ae-41aa-b601-0b4763883612-Photoroom_1776700638205.png";
+import crystalBall from "@assets/a0e77dd8-e3d5-4ad9-a4dc-c45a94906593-Photoroom.png";
 
 const CRITERIA_OPTIONS = [
   { id: "navigation", label: "Navigation", default: true },
