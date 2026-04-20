@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import bgImage from "@assets/f9b26700-c806-4dd2-a868-164b6d07915a_1776700081671.jpg";
 
 const CRITERIA_OPTIONS = [
   { id: "navigation", label: "Navigation", default: true },
@@ -286,7 +287,7 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
                       ...s.chip,
                       background: on ? "#7b2ff720" : "transparent",
                       borderColor: on ? "#7b2ff7" : "#3d1f6e",
-                      color: on ? "#c4a8ff" : "#5a4a7a",
+                      color: on ? "#c4a8ff" : "#7d67a8",
                     }}
                     onClick={() => toggleCriteria(c.id)}
                   >
@@ -362,17 +363,22 @@ export default function App() {
   if (loading) {
     return (
       <div style={s.page}>
-        <LoadingScreen />
+        <img src={bgImage} style={s.bgImage} alt="" />
+        <div style={s.content}>
+          <LoadingScreen />
+        </div>
       </div>
     );
   }
 
   return (
     <div style={s.page}>
+      <img src={bgImage} style={s.bgImage} alt="" />
+      <div style={s.content}>
       <header style={s.header}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🔮</div>
         <h1 style={s.title}>Seer</h1>
-        <p style={s.subtitle}>Upload your design. Get a real critique.</p>
+        <p style={s.subtitle}>Upload your design. Get real critique.</p>
       </header>
 
       <UploadZone
@@ -386,6 +392,7 @@ export default function App() {
           <ContextForm onReady={setFormData} />
         </FadeIn>
       )}
+      </div>
     </div>
   );
 }
@@ -396,29 +403,46 @@ const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
     background: "#1a0a2e",
+    position: "relative",
+  },
+  bgImage: {
+    position: "fixed",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    opacity: 0.8,
+    zIndex: 0,
+    pointerEvents: "none",
+  },
+  content: {
+    position: "relative",
+    zIndex: 1,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     padding: "40px 20px 100px",
-    fontFamily: "'Inter', sans-serif",
+    minHeight: "100vh",
+    fontFamily: "'Lato', sans-serif",
   },
   header: {
     textAlign: "center",
     marginBottom: 32,
   },
   title: {
-    fontFamily: "Georgia, serif",
+    fontFamily: "'Cormorant Unicase', serif",
     fontSize: 56,
-    fontWeight: 300,
+    fontWeight: 500,
     color: "#fff",
     margin: "0 0 12px",
-    letterSpacing: 8,
+    letterSpacing: "normal",
   },
   subtitle: {
     color: "#8a7aaa",
-    fontSize: 16,
+    fontSize: 18,
+    fontFamily: "'Lato', sans-serif",
     margin: 0,
-    letterSpacing: 0.5,
+    letterSpacing: "normal",
   },
   uploadZone: {
     width: "100%",
@@ -472,7 +496,7 @@ const s: Record<string, React.CSSProperties> = {
     margin: "0 0 8px",
   },
   uploadSub: {
-    color: "#5a4a7a",
+    color: "#7d67a8",
     fontSize: 13,
     margin: 0,
   },
@@ -483,7 +507,7 @@ const s: Record<string, React.CSSProperties> = {
     background: "#160824",
     border: "1px solid #3d1f6e",
     borderRadius: 8,
-    color: "#5a4a7a",
+    color: "#7d67a8",
     fontSize: 14,
     cursor: "not-allowed",
     boxSizing: "border-box",
@@ -504,11 +528,12 @@ const s: Record<string, React.CSSProperties> = {
   questionLabel: {
     color: "#fff",
     fontSize: 16,
-    fontFamily: "Georgia, serif",
+    fontFamily: "'Cormorant Unicase', serif",
+    fontWeight: 500,
     margin: 0,
   },
   hint: {
-    color: "#5a4a7a",
+    color: "#7d67a8",
     fontSize: 13,
     margin: 0,
   },
@@ -524,7 +549,7 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 14,
     cursor: "pointer",
     transition: "all 0.15s ease",
-    fontFamily: "sans-serif",
+    fontFamily: "'Lato', sans-serif",
   },
   textInput: {
     width: "100%",
@@ -536,7 +561,7 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 14,
     boxSizing: "border-box",
     outline: "none",
-    fontFamily: "sans-serif",
+    fontFamily: "'Lato', sans-serif",
   },
   textarea: {
     width: "100%",
@@ -549,7 +574,7 @@ const s: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     outline: "none",
     resize: "vertical",
-    fontFamily: "sans-serif",
+    fontFamily: "'Lato', sans-serif",
   },
   chipGrid: {
     display: "flex",
@@ -563,7 +588,7 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 13,
     cursor: "pointer",
     transition: "all 0.15s ease",
-    fontFamily: "sans-serif",
+    fontFamily: "'Lato', sans-serif",
   },
   ghostBtn: {
     alignSelf: "flex-start",
@@ -573,7 +598,7 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     fontSize: 14,
     cursor: "pointer",
-    fontFamily: "sans-serif",
+    fontFamily: "'Lato', sans-serif",
     transition: "all 0.15s ease",
   },
   primaryBtn: {
@@ -583,8 +608,9 @@ const s: Record<string, React.CSSProperties> = {
     border: "none",
     borderRadius: 12,
     fontSize: 16,
-    fontFamily: "Georgia, serif",
-    letterSpacing: 1,
+    fontFamily: "'Cormorant Unicase', serif",
+    fontWeight: 500,
+    letterSpacing: "normal",
     cursor: "pointer",
     transition: "box-shadow 0.2s ease",
   },
@@ -599,8 +625,8 @@ const s: Record<string, React.CSSProperties> = {
   loadingText: {
     color: "#8a7aaa",
     fontSize: 18,
-    fontFamily: "Georgia, serif",
+    fontFamily: "'Lato', sans-serif",
     margin: 0,
-    letterSpacing: 1,
+    letterSpacing: "normal",
   },
 };
