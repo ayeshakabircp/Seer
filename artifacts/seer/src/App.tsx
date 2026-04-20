@@ -694,6 +694,7 @@ const s: Record<string, React.CSSProperties> = {
     gap: 28,
   },
   qBlock: {
+    width: "100%",
     display: "flex",
     flexDirection: "column",
     gap: 12,
