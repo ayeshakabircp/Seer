@@ -528,8 +528,8 @@ const s: Record<string, React.CSSProperties> = {
   questionLabel: {
     color: "#fff",
     fontSize: 16,
-    fontFamily: "'Cormorant Unicase', serif",
-    fontWeight: 500,
+    fontFamily: "'Lato', sans-serif",
+    fontWeight: 700,
     margin: 0,
   },
   hint: {
