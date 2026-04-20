@@ -132,7 +132,7 @@ const styles: Record<string, React.CSSProperties> = {
   uploadZone: {
     width: "100%",
     maxWidth: "600px",
-    minHeight: "280px",
+    minHeight: "180px",
     border: "2px dashed #3d1f6e",
     borderRadius: "16px",
     display: "flex",
@@ -171,7 +171,7 @@ const styles: Record<string, React.CSSProperties> = {
   figmaRow: {
     width: "100%",
     maxWidth: "600px",
-    marginTop: "12px",
+    marginTop: "4px",
   },
   figmaInput: {
     width: "100%",
