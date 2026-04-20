@@ -22,6 +22,22 @@ const initialCriteria = CRITERIA_OPTIONS.reduce<Record<string, boolean>>(
   (acc, c) => ({ ...acc, [c.id]: c.default }), {}
 );
 
+const MOCK_RESULTS = {
+  overall_score: 6.4,
+  summary: { critical: 2, minor: 3, passed: 2 },
+  overall_reading: "The foundation is solid, but users will hit friction in two key areas before they reach the core value. Address navigation clarity and information hierarchy first — everything else is refinement.",
+  criteria: [
+    { name: "Navigation", score: 5, severity: "critical", observation: "Primary navigation lacks clear active states. Users cannot orient themselves within the product.", consequence: "Users will backtrack repeatedly, eroding trust in the product's structure.", fix: "Add persistent active state indicators. Ensure every screen has a clear path back." },
+    { name: "Visual Hierarchy", score: 5, severity: "critical", observation: "Multiple elements compete for attention at the same visual weight. No clear primary action.", consequence: "Users will scan without landing. Decision paralysis on key screens.", fix: "Establish one dominant element per screen. Reduce secondary elements to 60% visual weight." },
+    { name: "Information Density", score: 7, severity: "minor", observation: "Moderate density overall, with one section significantly more dense than the rest.", consequence: "Cognitive load spikes locally, breaking reading flow.", fix: "Apply consistent spacing tokens. Consider progressive disclosure for the dense section." },
+    { name: "Consistency", score: 8, severity: "passed", observation: "Component usage is largely consistent. Minor deviations in button styles across two screens.", consequence: "Low risk, but deviations compound over time.", fix: "Audit button variants and consolidate to three maximum." },
+    { name: "Accessibility", score: 6, severity: "minor", observation: "Contrast ratios pass on primary text but fail on placeholder and hint text.", consequence: "Users with low vision will struggle with form inputs.", fix: "Raise hint text colour to minimum 4.5:1 contrast ratio." },
+  ],
+};
+
+type CriteriaItem = { name: string; score: number; severity: string; observation: string; consequence: string; fix: string };
+type Results = { overall_score: number; summary: { critical: number; minor: number; passed: number }; overall_reading: string; criteria: CriteriaItem[] };
+
 // ── Reusable primitives ──────────────────────────────────────────────────────
 
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -313,6 +329,141 @@ function ContextForm({ onReady }: { onReady: (data: FormData) => void }) {
   );
 }
 
+// ── Results Screen ───────────────────────────────────────────────────────────
+
+function SeverityBadge({ severity }: { severity: string }) {
+  const colours: Record<string, { bg: string; border: string; text: string }> = {
+    critical: { bg: "#ff4d4d20", border: "#ff4d4d", text: "#ff4d4d" },
+    minor: { bg: "#ffaa0020", border: "#ffaa00", text: "#ffaa00" },
+    passed: { bg: "#00cc6620", border: "#00cc66", text: "#00cc66" },
+  };
+  const c = colours[severity];
+  return (
+    <span style={{
+      padding: "3px 10px",
+      borderRadius: 100,
+      border: `1px solid ${c.border}`,
+      background: c.bg,
+      color: c.text,
+      fontSize: 12,
+      fontFamily: "'Lato', sans-serif",
+      textTransform: "capitalize",
+    }}>
+      {severity}
+    </span>
+  );
+}
+
+function CriteriaCard({ item }: { item: CriteriaItem }) {
+  const [open, setOpen] = useState(false);
+  const [refutation, setRefutation] = useState("");
+  const [ignored, setIgnored] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  if (ignored) return (
+    <div style={s.cardIgnored}>
+      <span style={{ color: "#7d67a8", fontSize: 13 }}>{item.name} — ignored</span>
+      <button style={s.undoBtn} onClick={() => setIgnored(false)}>Undo</button>
+    </div>
+  );
+
+  return (
+    <div style={s.card}>
+      <div style={s.cardHeader} onClick={() => setOpen((o) => !o)}>
+        <div style={s.cardLeft}>
+          <span style={s.cardName}>{item.name}</span>
+          <span style={s.cardScore}>{item.score}/10</span>
+        </div>
+        <div style={s.cardRight}>
+          <SeverityBadge severity={item.severity} />
+          {saved && <span style={s.savedDot}>●</span>}
+          <span style={{ color: "#7d67a8", fontSize: 12 }}>{open ? "▲" : "▼"}</span>
+        </div>
+      </div>
+
+      {open && (
+        <div style={s.cardBody}>
+          <div style={s.cardSection}>
+            <p style={s.cardSectionLabel}>OBSERVATION</p>
+            <p style={s.cardSectionText}>{item.observation}</p>
+          </div>
+          <div style={s.cardSection}>
+            <p style={s.cardSectionLabel}>CONSEQUENCE</p>
+            <p style={{ ...s.cardSectionText, color: "#c4a8ff", fontStyle: "italic" }}>{item.consequence}</p>
+          </div>
+          <div style={s.cardSection}>
+            <p style={s.cardSectionLabel}>FIX</p>
+            <p style={s.cardSectionText}>{item.fix}</p>
+          </div>
+          <div style={s.refutationWrap}>
+            <textarea
+              placeholder="Add context or push back on this finding..."
+              value={refutation}
+              onChange={(e) => setRefutation(e.target.value)}
+              style={s.refutationInput}
+              rows={2}
+            />
+          </div>
+          <div style={s.cardActions}>
+            <button
+              style={{ ...s.actionBtn, color: saved ? "#7b2ff7" : "#7d67a8" }}
+              onClick={() => setSaved((v) => !v)}
+            >
+              {saved ? "✓ Saved" : "Save for later"}
+            </button>
+            <button
+              style={{ ...s.actionBtn, color: "#ff4d4d60" }}
+              onClick={() => setIgnored(true)}
+            >
+              Ignore
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultsScreen({ image, results }: { image: string | null; results: Results }) {
+  const activeCount = results.criteria.filter((c) => c.severity !== "passed").length;
+
+  return (
+    <div style={s.resultsPage}>
+      <div style={s.leftCol}>
+        <div style={s.scoreBlock}>
+          <span style={s.bigScore}>{results.overall_score}</span>
+          <span style={s.scoreDenom}>/10</span>
+        </div>
+        <div style={s.summaryRow}>
+          <span style={s.summaryItem}>
+            <span style={{ color: "#ff4d4d" }}>⬤</span> {results.summary.critical} Critical
+          </span>
+          <span style={s.summaryItem}>
+            <span style={{ color: "#ffaa00" }}>⬤</span> {results.summary.minor} Minor
+          </span>
+          <span style={s.summaryItem}>
+            <span style={{ color: "#00cc66" }}>⬤</span> {results.summary.passed} Passed
+          </span>
+        </div>
+        <p style={s.overallReading}>{results.overall_reading}</p>
+        <div style={s.divider} />
+        {image && <img src={image} alt="Your design" style={s.resultImage} />}
+      </div>
+
+      <div style={s.rightCol}>
+        <p style={s.rightColHeader}>
+          {activeCount} finding{activeCount !== 1 ? "s" : ""} to review
+        </p>
+        <div style={s.cardList}>
+          {results.criteria.map((item) => (
+            <CriteriaCard key={item.name} item={item} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Loading Screen ───────────────────────────────────────────────────────────
 
 function LoadingScreen() {
@@ -346,18 +497,22 @@ export default function App() {
   const [formData, setFormData] = useState<FormData | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<Results | null>(null);
 
   const handleReset = () => {
     setImage(null);
     setFormData(null);
     setLoading(false);
+    setResults(null);
   };
 
   useEffect(() => {
     if (formData) {
       setLoading(true);
-      // API call goes here in Frame 5
-      setTimeout(() => setLoading(false), 4000); // placeholder
+      setTimeout(() => {
+        setLoading(false);
+        setResults(MOCK_RESULTS);
+      }, 4000);
     }
   }, [formData]);
 
@@ -367,6 +522,17 @@ export default function App() {
         <img src={bgImage} style={s.bgImage} alt="" />
         <div style={s.content}>
           <LoadingScreen />
+        </div>
+      </div>
+    );
+  }
+
+  if (results) {
+    return (
+      <div style={s.page}>
+        <img src={bgImage} style={s.bgImage} alt="" />
+        <div style={s.content}>
+          <ResultsScreen image={image} results={results} />
         </div>
       </div>
     );
@@ -632,5 +798,199 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: "'Lato', sans-serif",
     margin: 0,
     letterSpacing: "normal",
+  },
+  resultsPage: {
+    width: "100%",
+    maxWidth: 1100,
+    display: "flex",
+    gap: 40,
+    marginTop: 40,
+    alignItems: "flex-start",
+  },
+  leftCol: {
+    width: 340,
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    position: "sticky",
+    top: 40,
+  },
+  rightCol: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  scoreBlock: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  bigScore: {
+    fontFamily: "'Cormorant Unicase', serif",
+    fontSize: 72,
+    fontWeight: 300,
+    color: "#fff",
+    lineHeight: 1,
+  },
+  scoreDenom: {
+    fontFamily: "'Cormorant Unicase', serif",
+    fontSize: 32,
+    color: "#7d67a8",
+  },
+  summaryRow: {
+    display: "flex",
+    gap: 16,
+    flexWrap: "wrap",
+  },
+  summaryItem: {
+    color: "#8a7aaa",
+    fontSize: 13,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontFamily: "'Lato', sans-serif",
+  },
+  overallReading: {
+    color: "#c4a8ff",
+    fontSize: 14,
+    fontStyle: "italic",
+    lineHeight: 1.7,
+    margin: 0,
+    fontFamily: "'Lato', sans-serif",
+  },
+  divider: {
+    height: 1,
+    background: "#3d1f6e",
+    width: "100%",
+  },
+  resultImage: {
+    width: "100%",
+    borderRadius: 12,
+    border: "1px solid #3d1f6e",
+  },
+  rightColHeader: {
+    color: "#7d67a8",
+    fontSize: 13,
+    margin: 0,
+    letterSpacing: 0.5,
+    fontFamily: "'Lato', sans-serif",
+  },
+  cardList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  card: {
+    background: "#160824",
+    border: "1px solid #3d1f6e",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  cardIgnored: {
+    background: "#160824",
+    border: "1px solid #3d1f6e20",
+    borderRadius: 12,
+    padding: "12px 16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "14px 16px",
+    cursor: "pointer",
+  },
+  cardLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  cardRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  cardName: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "'Lato', sans-serif",
+    fontWeight: 700,
+  },
+  cardScore: {
+    color: "#7d67a8",
+    fontSize: 13,
+    fontFamily: "'Lato', sans-serif",
+  },
+  savedDot: {
+    color: "#7b2ff7",
+    fontSize: 10,
+  },
+  cardBody: {
+    padding: "0 16px 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+    borderTop: "1px solid #3d1f6e",
+  },
+  cardSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    paddingTop: 14,
+  },
+  cardSectionLabel: {
+    color: "#7d67a8",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    margin: 0,
+    fontFamily: "'Lato', sans-serif",
+  },
+  cardSectionText: {
+    color: "#c4a8ff",
+    fontSize: 14,
+    lineHeight: 1.6,
+    margin: 0,
+    fontFamily: "'Lato', sans-serif",
+  },
+  refutationWrap: {
+    borderTop: "1px solid #3d1f6e",
+    paddingTop: 12,
+  },
+  refutationInput: {
+    width: "100%",
+    padding: "10px 14px",
+    background: "#1a0a2e",
+    border: "1px solid #3d1f6e",
+    borderRadius: 8,
+    color: "#fff",
+    fontSize: 13,
+    boxSizing: "border-box",
+    outline: "none",
+    resize: "none",
+    fontFamily: "'Lato', sans-serif",
+  },
+  cardActions: {
+    display: "flex",
+    gap: 16,
+  },
+  actionBtn: {
+    background: "none",
+    border: "none",
+    fontSize: 13,
+    cursor: "pointer",
+    padding: 0,
+    fontFamily: "'Lato', sans-serif",
+  },
+  undoBtn: {
+    background: "none",
+    border: "none",
+    color: "#7b2ff7",
+    fontSize: 13,
+    cursor: "pointer",
+    fontFamily: "'Lato', sans-serif",
   },
 };
