@@ -578,7 +578,7 @@ const s: Record<string, React.CSSProperties> = {
     width: "100%",
     height: "100%",
     objectFit: "cover",
-    opacity: 0.5,
+    opacity: 0.3,
     zIndex: 0,
     pointerEvents: "none",
   },
@@ -604,7 +604,7 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 56,
     fontWeight: 500,
     color: "#fff",
-    margin: "0 0 24px",
+    margin: 0,
     letterSpacing: "normal",
   },
   subtitle: {
