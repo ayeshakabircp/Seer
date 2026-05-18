@@ -1,393 +1,1518 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@plugin "@tailwindcss/typography";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-@custom-variant dark (&:is(.dark *));
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Severity = "critical" | "minor" | "passed";
+type CriteriaItem = { name: string; score: number; severity: Severity; observation: string; consequence: string; fix: string };
+type Results = { overall_score: number; summary: { critical: number; minor: number; passed: number }; overall_reading: string; criteria: CriteriaItem[] };
+type FormData = { productType: string | null; primaryUsers: string; constraints: string; criteria: string[] };
+type CritiqueVersion = { id: string; image: string; results: Results; date: string };
+type Critique = { id: string; name: string; projectId: string | null; versions: CritiqueVersion[]; formData: FormData };
+type Project = { id: string; name: string; productType: string; primaryUsers: string; constraints: string };
 
-@theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+// ─── Tokens ───────────────────────────────────────────────────────────────────
+const LIGHT = {
+  bg: "#f7f5ff", bgCard: "#ffffff", bgHover: "#ede8ff", bgOverlay: "rgba(0,0,0,0.25)",
+  brand: "#7b2ff7", border: "#ddd5f5", shadow: "0 2px 12px rgba(123,47,247,0.08)",
+  text: "#1a0a2e", textSec: "#3d2e62", textMuted: "#5e4d84", textAcc: "#4c18b8",
+  critical: "#b01c1c", minor: "#8a4800", passed: "#005c2e", downloadBg: "#ede8ff",
+  navH: 48,
+};
+const DARK = {
+  bg: "#1a0a2e", bgCard: "#160824", bgHover: "#2a0f4e", bgOverlay: "rgba(0,0,0,0.5)",
+  brand: "#7b2ff7", border: "#3d1f6e", shadow: "0 2px 12px rgba(0,0,0,0.3)",
+  text: "#ffffff", textSec: "#d4c8f0", textMuted: "#b0a0d0", textAcc: "#d4b8ff",
+  critical: "#ff6b6b", minor: "#ffbb33", passed: "#33dd77", downloadBg: "#2a0f4e",
+  navH: 48,
+};
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-card-border: hsl(var(--card-border));
+// ─── Levels ───────────────────────────────────────────────────────────────────
+const LEVELS = [
+  { emoji: "🕯️", title: "Initiate",          threshold: 10  },
+  { emoji: "🌙", title: "Observer",           threshold: 30  },
+  { emoji: "🦉", title: "Reader",             threshold: 60  },
+  { emoji: "👁️", title: "Architect of Sight", threshold: 100 },
+  { emoji: "🪞", title: "Oracle",             threshold: 150 },
+  { emoji: "🧙", title: "Seer",              threshold: 250 },
+];
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-popover-border: hsl(var(--popover-border));
-
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary-border: var(--primary-border);
-
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-secondary-border: var(--secondary-border);
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-muted-border: var(--muted-border);
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-accent-border: var(--accent-border);
-
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-destructive-border: var(--destructive-border);
-
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
-
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-primary-border: var(--sidebar-primary-border);
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-accent-border: var(--sidebar-accent-border);
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
-
-  --font-sans: var(--app-font-sans);
-  --font-serif: var(--app-font-serif);
-  --font-mono: var(--app-font-mono);
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+function getLevel(shards: number) {
+  let lvl = -1;
+  for (let i = 0; i < LEVELS.length; i++) { if (shards >= LEVELS[i].threshold) lvl = i; }
+  return lvl;
 }
 
-/* LIGHT MODE */
-:root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+// ─── Constants ────────────────────────────────────────────────────────────────
+const CRITERIA_OPTIONS = [
+  { id: "navigation",    label: "Navigation",          default: true  },
+  { id: "hierarchy",     label: "Visual Hierarchy",    default: true  },
+  { id: "density",       label: "Information Density", default: true  },
+  { id: "consistency",   label: "Consistency",         default: true  },
+  { id: "accessibility", label: "Accessibility",       default: true  },
+  { id: "errors",        label: "Error Handling",      default: false },
+  { id: "empty",         label: "Empty States",        default: false },
+  { id: "typography",    label: "Typography",          default: false },
+  { id: "colour",        label: "Colour & Contrast",   default: false },
+  { id: "motion",        label: "Motion & Feedback",   default: false },
+];
+const PRODUCT_TYPES = ["Web App", "Mobile App", "Dashboard", "Internal Tool", "Other"];
+const initCriteria = () => CRITERIA_OPTIONS.reduce<Record<string, boolean>>((a, c) => ({ ...a, [c.id]: c.default }), {});
 
-  /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+const MOCK_RESULTS: Results = {
+  overall_score: 6.4,
+  summary: { critical: 2, minor: 2, passed: 1 },
+  overall_reading: "The foundation is solid, but users will hit friction in two key areas before they reach core value. Address navigation clarity and information hierarchy first — everything else is refinement.",
+  criteria: [
+    { name: "Navigation", score: 5, severity: "critical", observation: "Primary navigation lacks clear active states.", consequence: "Users will backtrack repeatedly, eroding trust in the product's structure.", fix: "Add persistent active state indicators. Ensure every screen has a clear path back." },
+    { name: "Visual Hierarchy", score: 5, severity: "critical", observation: "Multiple elements compete at the same visual weight.", consequence: "Decision paralysis on key screens.", fix: "Establish one dominant element per screen. Reduce secondary elements to 60% visual weight." },
+    { name: "Information Density", score: 7, severity: "minor", observation: "One section significantly more dense than the rest.", consequence: "Cognitive load spikes locally, breaking reading flow.", fix: "Apply consistent spacing tokens. Consider progressive disclosure." },
+    { name: "Consistency", score: 8, severity: "minor", observation: "Minor deviations in button styles across two screens.", consequence: "Deviations compound over time.", fix: "Audit button variants and consolidate to three maximum." },
+    { name: "Accessibility", score: 6, severity: "passed", observation: "Contrast ratios pass on primary text. Hint text is borderline.", consequence: "Low risk for most users.", fix: "Raise hint text colour to minimum 4.5:1 contrast ratio." },
+  ],
+};
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2);
+const dateStr = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+function load<T>(key: string, fallback: T): T {
+  try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; } catch { return fallback; }
+}
+const persist = (key: string, val: unknown) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
 
-  --background: red; /*replace with H S L */
-
-  --foreground: red; /*replace with H S L */
-
-  --border: red; /*replace with H S L */
-
-  --card: red; /*replace with H S L */
-
-  --card-foreground: red; /*replace with H S L */
-
-  --card-border: red; /*replace with H S L */
-
-  --sidebar: red; /*replace with H S L */
-
-  --sidebar-foreground: red; /*replace with H S L */
-
-  --sidebar-border: red; /*replace with H S L */
-
-  --sidebar-primary: red; /*replace with H S L */
-
-  --sidebar-primary-foreground: red; /*replace with H S L */
-
-  --sidebar-accent: red; /*replace with H S L */
-
-  --sidebar-accent-foreground: red; /*replace with H S L */
-
-  --sidebar-ring: red; /*replace with H S L */
-
-  --popover: red; /*replace with H S L */
-
-  --popover-foreground: red; /*replace with H S L */
-
-  --popover-border: red; /*replace with H S L */
-
-  --primary: red; /*replace with H S L */
-
-  --primary-foreground: red; /*replace with H S L */
-
-  --secondary: red; /*replace with H S L */
-
-  --secondary-foreground: red; /*replace with H S L */
-
-  --muted: red; /*replace with H S L */
-
-  --muted-foreground: red; /*replace with H S L */
-
-  --accent: red; /*replace with H S L */
-
-  --accent-foreground: red; /*replace with H S L */
-
-  --destructive: red; /*replace with H S L */
-
-  --destructive-foreground: red; /*replace with H S L */
-
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
-
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
-  --radius: .5rem; /* 8px */
-  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00); /*replace with H S L */
-  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00); /*replace with H S L */
-  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
-
-  /* Fallback for older browsers */
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --primary-border: hsl(var(--primary));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --muted-border: hsl(var(--muted));
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --accent-border: hsl(var(--accent));
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
-  --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+// ─── FadeIn ───────────────────────────────────────────────────────────────────
+function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const [vis, setVis] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVis(true), delay); return () => clearTimeout(t); }, [delay]);
+  return (
+    <div style={{ opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.3s ease,transform 0.3s ease", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {children}
+    </div>
+  );
 }
 
-.dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+// ─── Global CSS ───────────────────────────────────────────────────────────────
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Gasoek+One&family=Instrument+Serif:ital@0;1&display=swap');
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  @keyframes popIn { 0%{transform:scale(0.3);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  @keyframes flyTo { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--tx),var(--ty)) scale(0.2);opacity:0} }
+  @keyframes badgeBounce { 0%,100%{transform:scale(1)} 40%{transform:scale(1.3)} 70%{transform:scale(0.9)} }
+  @keyframes shardFloat { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-60px);opacity:0} }
+  @keyframes overlayIn { 0%{opacity:0} 100%{opacity:1} }
+  @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+  @keyframes blobDrift1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-20px) scale(1.05)} 66%{transform:translate(-20px,15px) scale(0.97)} }
+  @keyframes blobDrift2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-25px,30px) scale(1.06)} 70%{transform:translate(20px,-10px) scale(0.95)} }
+  @keyframes blobDrift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(15px,25px) scale(1.04)} }
+  @keyframes blobDrift4 { 0%,100%{transform:translate(0,0) scale(1)} 30%{transform:translate(-30px,-15px) scale(1.08)} 80%{transform:translate(10px,20px) scale(0.96)} }
+  @keyframes sparklePulse  { 0%,100%{transform:scale(1) rotate(0deg);opacity:0.55} 50%{transform:scale(1.25) rotate(20deg);opacity:1} }
+  @keyframes sparklePulse2 { 0%,100%{transform:scale(1) rotate(0deg);opacity:0.45} 50%{transform:scale(0.8) rotate(-18deg);opacity:0.85} }
+  @keyframes sparklePulse3 { 0%,100%{transform:scale(1) rotate(8deg);opacity:0.6} 50%{transform:scale(1.2) rotate(-12deg);opacity:1} }
+`;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
-
-  --background: red; /*replace with H S L */
-
-  --foreground: red; /*replace with H S L */
-
-  --border: red; /*replace with H S L */
-
-  --card: red; /*replace with H S L */
-
-  --card-foreground: red; /*replace with H S L */
-
-  --card-border: red; /*replace with H S L */
-
-  --sidebar: red; /*replace with H S L */
-
-  --sidebar-foreground: red; /*replace with H S L */
-
-  --sidebar-border: red; /*replace with H S L */
-
-  --sidebar-primary: red; /*replace with H S L */
-
-  --sidebar-primary-foreground: red; /*replace with H S L */
-
-  --sidebar-accent: red; /*replace with H S L */
-
-  --sidebar-accent-foreground: red; /*replace with H S L */
-
-  --sidebar-ring: red; /*replace with H S L */
-
-  --popover: red; /*replace with H S L */
-
-  --popover-foreground: red; /*replace with H S L */
-
-  --popover-border: red; /*replace with H S L */
-
-  --primary: red; /*replace with H S L */
-
-  --primary-foreground: red; /*replace with H S L */
-
-  --secondary: red; /*replace with H S L */
-
-  --secondary-foreground: red; /*replace with H S L */
-
-  --muted: red; /*replace with H S L */
-
-  --muted-foreground: red; /*replace with H S L */
-
-  --accent: red; /*replace with H S L */
-
-  --accent-foreground: red; /*replace with H S L */
-
-  --destructive: red; /*replace with H S L */
-
-  --destructive-foreground: red; /*replace with H S L */
-
-  /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
-
-  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-
+// ─── Level Unlock Overlay ─────────────────────────────────────────────────────
+function LevelUnlockOverlay({ level, onDone }: { level: typeof LEVELS[0]; onDone: () => void }) {
+  const [phase, setPhase] = useState<"grow" | "fly">("grow");
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase("fly"), 2200);
+    const t2 = setTimeout(() => onDone(), 3000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", animation: "overlayIn 0.3s ease" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 96, animation: phase === "grow" ? "popIn 0.6s ease forwards, pulse 1s ease 0.6s infinite" : "flyTo 0.8s ease forwards", "--tx": "-40vw", "--ty": "-45vh" } as React.CSSProperties}>{level.emoji}</div>
+        {phase === "grow" && (
+          <div style={{ marginTop: 24, animation: "popIn 0.5s ease 0.4s both" }}>
+            <p style={{ color: "#fff", fontSize: 13, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: "'Lato',sans-serif", opacity: 0.8 }}>Level unlocked</p>
+            <p style={{ color: "#fff", fontSize: 32, fontFamily: "'Cormorant Unicase',serif", margin: 0 }}>{level.title}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
-  }
+// ─── Shard Travel ─────────────────────────────────────────────────────────────
+function ShardTravel({ count, onDone, badgeRef }: { count: number; onDone: () => void; badgeRef: React.RefObject<HTMLDivElement> }) {
+  const shards = Array.from({ length: Math.min(count, 8) }, (_, i) => i);
+  useEffect(() => { const t = setTimeout(onDone, 1200); return () => clearTimeout(t); }, []);
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 999 }}>
+      {shards.map(i => {
+        const badge = badgeRef.current?.getBoundingClientRect();
+        const tx = badge ? badge.left - window.innerWidth / 2 : 0;
+        const ty = badge ? badge.top - window.innerHeight / 2 : -300;
+        return <div key={i} style={{ position: "absolute", left: `calc(50% + ${(i - shards.length / 2) * 30}px)`, top: "50%", fontSize: 20, animation: `flyTo 0.9s ${i * 0.08}s ease forwards`, "--tx": `${tx}px`, "--ty": `${ty}px` } as React.CSSProperties}>✦</div>;
+      })}
+    </div>
+  );
 }
 
-/**
- * Using the elevate system.
- * Automatic contrast adjustment.
- *
- * <element className="hover-elevate" />
- * <element className="active-elevate-2" />
- *
- * // Using the tailwind utility when a data attribute is "on"
- * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
- * // Or manually controlling the toggle state
- * <element className="toggle-elevate toggle-elevated" />
- *
- * Elevation systems have to handle many states.
- * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
- * - toggled or not
- * - focused or not (this is not handled with these utilities)
- *
- * Even without handling focused or not, this is six possible combinations that
- * need to be distinguished from eachother visually.
- */
-@layer utilities {
+// ─── Score Badge ──────────────────────────────────────────────────────────────
+function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: typeof LIGHT; badgeRef: React.RefObject<HTMLDivElement>; bouncing: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const lvlIdx = getLevel(shards);
+  const level = lvlIdx >= 0 ? LEVELS[lvlIdx] : null;
+  const nextLevel = LEVELS[lvlIdx + 1] || null;
+  const progress = nextLevel ? ((shards - (level?.threshold || 0)) / (nextLevel.threshold - (level?.threshold || 0))) * 100 : 100;
 
-  /* Hide ugly search cancel button in Chrome until we can style it properly */
-  input[type="search"]::-webkit-search-cancel-button {
-    @apply hidden;
-  }
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
 
-  /* Placeholder styling for contentEditable div */
-  [contenteditable][data-placeholder]:empty::before {
-    content: attr(data-placeholder);
-    color: hsl(var(--muted-foreground));
-    pointer-events: none;
-  }
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div ref={badgeRef} onClick={() => setOpen(o => !o)}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", background: t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
+        <span style={{ fontSize: 16 }}>{level?.emoji || "🕯️"}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: t.text, fontFamily: "'Lato',sans-serif" }}>{shards}</span>
+        <span style={{ fontSize: 11, color: t.brand }}>✦</span>
+      </div>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 200, background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 440, boxShadow: t.shadow }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <span style={{ fontSize: 44 }}>{level?.emoji || "🕯️"}</span>
+            <div>
+              <p style={{ margin: 0, fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif", letterSpacing: 0.8, textTransform: "uppercase" }}>Current level</p>
+              <p style={{ margin: 0, fontSize: 20, color: t.text, fontFamily: "'Cormorant Unicase',serif" }}>{level?.title || "Unranked"}</p>
+              <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>{shards} ✦ collected</p>
+            </div>
+          </div>
+          {nextLevel && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>{shards} ✦</span>
+                <span style={{ fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>{nextLevel.threshold} ✦ → {nextLevel.title}</span>
+              </div>
+              <div style={{ height: 6, background: t.bgHover, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${progress}%`, background: t.brand, borderRadius: 3, transition: "width 0.6s ease" }} />
+              </div>
+            </div>
+          )}
+          {/* Level carousel — square cards */}
+          <div style={{ overflowX: "auto", display: "flex", gap: 10, paddingBottom: 4 }}>
+            {LEVELS.map((lv, i) => {
+              const unlocked = shards >= lv.threshold;
+              return (
+                <div key={i} style={{ flexShrink: 0, width: 96, height: 96, borderRadius: 14, border: `1.5px solid ${unlocked ? t.brand : t.border}`, background: unlocked ? t.brand + "14" : t.bgHover, opacity: unlocked ? 1 : 0.5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, boxSizing: "border-box", transition: "all 0.2s" }}>
+                  <div style={{ fontSize: 30 }}>{lv.emoji}</div>
+                  <p style={{ margin: 0, fontSize: 10, color: unlocked ? t.brand : t.textMuted, fontFamily: "'Lato',sans-serif", fontWeight: 700, lineHeight: 1.2, textAlign: "center", padding: "0 4px" }}>{lv.title}</p>
+                  <p style={{ margin: 0, fontSize: 10, color: unlocked ? t.passed : t.textMuted, fontFamily: "'Lato',sans-serif" }}>{unlocked ? "✓" : `${lv.threshold} ✦`}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
-   * buttons/badges can remove the automatic brightness adjustment on interactions
-   * and program their own. */
-  .no-default-hover-elevate {}
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const Icons = {
+  sidebar:      () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>,
+  home:         () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  upload:       () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+  download:     () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  chevronD:     () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>,
+  chevronR:     () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>,
+  back:         () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
+  folder:       () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>,
+  dots:         () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>,
+  trash:        () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>,
+  edit:         () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  folderPlus:   () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>,
+  removeFolder: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="9" y1="14" x2="15" y2="14"/></svg>,
+  plus:         () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+};
 
-  .no-default-active-elevate {}
+// ─── PlusBtn — subtle round fill ──────────────────────────────────────────────
+function PlusBtn({ onClick, title, t }: { onClick: () => void; title: string; t: typeof LIGHT }) {
+  return (
+    <button onClick={onClick} title={title}
+      style={{ background: t.downloadBg, border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: t.textMuted, flexShrink: 0 }}>
+      <Icons.plus />
+    </button>
+  );
+}
 
+// ─── Left Panel ───────────────────────────────────────────────────────────────
+function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, activeCritiqueId, onSelectCritique, onNewCritique, onNewProject, onGoHome, onMoveCritique, onRenameCritique, onDeleteCritique, onDeleteProject }: {
+  t: typeof LIGHT; collapsed: boolean; onToggleCollapse: () => void;
+  projects: Project[]; critiques: Critique[];
+  activeCritiqueId: string | null;
+  onSelectCritique: (id: string) => void;
+  onNewCritique: (projectId?: string) => void;
+  onNewProject: () => void; onGoHome: () => void;
+  onMoveCritique: (cId: string, pId: string | null) => void;
+  onRenameCritique: (cId: string, name: string) => void;
+  onDeleteCritique: (cId: string) => void;
+  onDeleteProject: (pId: string) => void;
+}) {
+  const [panelView, setPanelView] = useState<string>("root");
+  const [dotMenu, setDotMenu] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState("");
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [projectDotMenu, setProjectDotMenu] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const projectMenuRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
-   * This way they can stack/compound. Both will overlap the parent's borders!
-   * So borders will be automatically adjusted both on toggle, and hover/active,
-   * and they will be compounded.
-   */
-  .toggle-elevate::before,
-  .toggle-elevate-2::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
-    border-radius: inherit;
-    z-index: -1;
-    /* sits behind content but above backdrop */
-  }
+  const currentProject = panelView !== "root" ? projects.find(p => p.id === panelView) : null;
+  const standalone = critiques.filter(c => !c.projectId);
+  const projectCritiques = currentProject ? critiques.filter(c => c.projectId === currentProject.id) : [];
 
-  .toggle-elevate.toggle-elevated::before {
-    background-color: var(--elevate-2);
-  }
+  useEffect(() => {
+    if (!dotMenu && !projectDotMenu) return;
+    const h = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) { setDotMenu(null); setMovingId(null); }
+      if (projectMenuRef.current && !projectMenuRef.current.contains(e.target as Node)) setProjectDotMenu(null);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [dotMenu, projectDotMenu]);
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
-  .border.toggle-elevate::before {
-    inset: -1px;
-  }
+  const handleProjectFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f || !currentProject) return;
+    const r = new FileReader();
+    r.onload = () => { onNewCritique(currentProject.id); };
+    r.readAsDataURL(f);
+  };
 
-  /* Does not work on elements with overflow:hidden! */
-  .hover-elevate:not(.no-default-hover-elevate),
-  .active-elevate:not(.no-default-active-elevate),
-  .hover-elevate-2:not(.no-default-hover-elevate),
-  .active-elevate-2:not(.no-default-active-elevate) {
-    position: relative;
-    z-index: 0;
-  }
+  const critiqueRow = (c: Critique) => {
+    const latest = c.versions[c.versions.length - 1];
+    const active = c.id === activeCritiqueId;
+    const isInProject = !!c.projectId;
+    return (
+      <div key={c.id} style={{ position: "relative" }}>
+        {renaming === c.id ? (
+          <div style={{ padding: "6px 12px" }}>
+            <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { onRenameCritique(c.id, renameVal); setRenaming(null); } if (e.key === "Escape") setRenaming(null); }}
+              style={{ width: "100%", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, fontSize: 12, padding: "4px 8px", outline: "none", boxSizing: "border-box", fontFamily: "'Lato',sans-serif" }} />
+          </div>
+        ) : (
+          <div onClick={() => onSelectCritique(c.id)}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", cursor: "pointer", background: active ? t.bgHover : "transparent" }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.background = t.bgHover; }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+          >
+            {latest?.image
+              ? <img src={latest.image} style={{ width: 26, height: 26, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: `1px solid ${t.border}` }} alt="" />
+              : <div style={{ width: 26, height: 26, borderRadius: 4, background: t.bgHover, flexShrink: 0 }} />}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "'Lato',sans-serif", fontWeight: active ? 700 : 400 }}>{c.name}</p>
+              <p style={{ margin: 0, fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>
+                {latest ? `${latest.results.overall_score} · ${latest.date}` : "No reads yet"}
+                {c.versions.length > 1 ? ` · v${c.versions.length}` : ""}
+              </p>
+            </div>
+            <button onClick={e => { e.stopPropagation(); setDotMenu(dotMenu === c.id ? null : c.id); setMovingId(null); }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 2, display: "flex", flexShrink: 0 }}>
+              <Icons.dots />
+            </button>
+          </div>
+        )}
+        {dotMenu === c.id && (
+          <div ref={menuRef} style={{ position: "absolute", right: 8, top: "100%", zIndex: 50, background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 8, overflow: "hidden", boxShadow: t.shadow, minWidth: 180 }}>
+            {movingId === c.id ? (
+              <div style={{ padding: 10 }}>
+                <p style={{ fontSize: 11, color: t.textMuted, margin: "0 0 6px", fontFamily: "'Lato',sans-serif" }}>Move to project</p>
+                {projects.length === 0 && <p style={{ fontSize: 12, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>No projects yet.</p>}
+                {projects.map(p => (
+                  <div key={p.id} onClick={() => { onMoveCritique(c.id, p.id); setDotMenu(null); setMovingId(null); }}
+                    style={{ padding: "6px 8px", fontSize: 12, color: t.text, cursor: "pointer", borderRadius: 4, fontFamily: "'Lato',sans-serif" }}
+                    onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >{p.name}</div>
+                ))}
+                <div onClick={() => setMovingId(null)} style={{ padding: "6px 8px", fontSize: 12, color: t.textMuted, cursor: "pointer", fontFamily: "'Lato',sans-serif", marginTop: 4 }}>Cancel</div>
+              </div>
+            ) : (
+              <>
+                {!isInProject && (
+                  <div onClick={() => setMovingId(c.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", cursor: "pointer", color: t.text, fontSize: 13, fontFamily: "'Lato',sans-serif", borderBottom: `1px solid ${t.border}` }}
+                    onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  ><Icons.folderPlus /> Add to project</div>
+                )}
+                {isInProject && (
+                  <div onClick={() => { onMoveCritique(c.id, null); setDotMenu(null); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", cursor: "pointer", color: t.text, fontSize: 13, fontFamily: "'Lato',sans-serif", borderBottom: `1px solid ${t.border}` }}
+                    onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  ><Icons.removeFolder /> Remove from project</div>
+                )}
+                <div onClick={() => { setRenaming(c.id); setRenameVal(c.name); setDotMenu(null); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", cursor: "pointer", color: t.text, fontSize: 13, fontFamily: "'Lato',sans-serif", borderBottom: `1px solid ${t.border}` }}
+                  onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                ><Icons.edit /> Rename</div>
+                <div onClick={() => { onDeleteCritique(c.id); setDotMenu(null); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", cursor: "pointer", color: t.critical, fontSize: 13, fontFamily: "'Lato',sans-serif" }}
+                  onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                ><Icons.trash /> Delete</div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
-  .hover-elevate:not(.no-default-hover-elevate)::after,
-  .active-elevate:not(.no-default-active-elevate)::after,
-  .hover-elevate-2:not(.no-default-hover-elevate)::after,
-  .active-elevate-2:not(.no-default-active-elevate)::after {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
-    border-radius: inherit;
-    z-index: 999;
-    /* sits in front of content */
-  }
+  if (collapsed) return (
+    <div style={{ width: 48, flexShrink: 0, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 14, background: t.bgCard, height: "100vh" }}>
+      <button onClick={onToggleCollapse} title="Expand" style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 4, display: "flex" }}><Icons.sidebar /></button>
+      <div style={{ flex: 1 }} />
+      <div style={{ padding: "0 0 14px" }}>
+        <button title="Export" style={{ background: t.downloadBg, border: "none", borderRadius: 8, cursor: "pointer", color: t.textMuted, padding: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icons.download />
+        </button>
+      </div>
+    </div>
+  );
 
-  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
-  .active-elevate:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-1);
-  }
+  return (
+    <div style={{ width: 260, flexShrink: 0, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", background: t.bgCard, height: "100vh", overflow: "hidden" }}>
+      {/* Header — same height as main nav */}
+      <div style={{ height: t.navH, padding: "0 12px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0, boxSizing: "border-box" }}>
+        {panelView !== "root" ? (
+          <>
+            <button onClick={() => setPanelView("root")} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 0, display: "flex" }}><Icons.back /></button>
+            <span style={{ color: t.textMuted, display: "flex" }}><Icons.folder /></span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontFamily: "'Lato',sans-serif" }}>{currentProject?.name}</span>
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setProjectDotMenu(projectDotMenu === panelView ? null : panelView)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 2, display: "flex" }}>
+                <Icons.dots />
+              </button>
+              {projectDotMenu === panelView && (
+                <div ref={projectMenuRef} style={{ position: "absolute", right: 0, top: "100%", zIndex: 50, background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 8, overflow: "hidden", boxShadow: t.shadow, minWidth: 140 }}>
+                  <div onClick={() => { onDeleteProject(panelView); setPanelView("root"); setProjectDotMenu(null); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", cursor: "pointer", color: t.critical, fontSize: 13, fontFamily: "'Lato',sans-serif" }}
+                    onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  ><Icons.trash /> Delete project</div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
+              <span style={{ fontSize: 18 }}>🔮</span>
+              <span style={{ fontSize: 15, fontFamily: "'Cormorant Unicase',serif", color: t.text }}>Seer</span>
+            </button>
+            <button onClick={onToggleCollapse} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 2, display: "flex" }}><Icons.sidebar /></button>
+          </>
+        )}
+      </div>
 
-  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
-  .active-elevate-2:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-2);
-  }
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 0" }}>
+        {panelView === "root" ? (
+          <>
+            {/* Projects */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", marginBottom: 4 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 1, textTransform: "uppercase", margin: 0, fontFamily: "'Lato',sans-serif" }}>Projects</p>
+              {projects.length > 0 && <PlusBtn onClick={onNewProject} title="New project" t={t} />}
+            </div>
+            {projects.length === 0 ? (
+              <div style={{ padding: "10px 12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: "'Lato',sans-serif", lineHeight: 1.6 }}>
+                  Create a project to organise your critiques and give Seer shared context across every read.
+                </p>
+                <button onClick={onNewProject} style={{ padding: "8px 14px", background: t.brand, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontFamily: "'Lato',sans-serif", cursor: "pointer", alignSelf: "flex-start" }}>
+                  Create project
+                </button>
+              </div>
+            ) : (
+              projects.map(p => (
+                <div key={p.id} onClick={() => setPanelView(p.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", cursor: "pointer" }}
+                  onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <span style={{ color: t.textMuted, display: "flex" }}><Icons.folder /></span>
+                  <span style={{ fontSize: 13, color: t.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "'Lato',sans-serif" }}>{p.name}</span>
+                  <span style={{ color: t.textMuted, display: "flex" }}><Icons.chevronR /></span>
+                </div>
+              ))
+            )}
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
-  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate:not(.no-active-interaction-elevate)::after,
-  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
-  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
-    inset: -1px;
-  }
+            <div style={{ height: 1, background: t.border, margin: "8px 12px" }} />
+
+            {/* Critiques — plus icon replaces footer button */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", marginBottom: 4 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 1, textTransform: "uppercase", margin: 0, fontFamily: "'Lato',sans-serif" }}>Critiques</p>
+              <PlusBtn onClick={onGoHome} title="New critique" t={t} />
+            </div>
+            {standalone.length === 0
+              ? <p style={{ fontSize: 12, color: t.textMuted, padding: "2px 12px 8px", fontFamily: "'Lato',sans-serif", lineHeight: 1.6 }}>Your critiques will appear here. Upload a design to get started.</p>
+              : standalone.map(critiqueRow)
+            }
+          </>
+        ) : (
+          <>
+            {/* Project context snippet */}
+            {currentProject && (
+              <div style={{ padding: "8px 12px 10px", borderBottom: `1px solid ${t.border}`, marginBottom: 6 }}>
+                <p style={{ margin: "0 0 2px", fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>{currentProject.productType} · {currentProject.primaryUsers}</p>
+                {currentProject.constraints && <p style={{ margin: 0, fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentProject.constraints}</p>}
+              </div>
+            )}
+
+            {/* Add critique button at top */}
+            <div style={{ padding: "0 12px 8px" }}>
+              <button onClick={() => { if (currentProject) onNewCritique(currentProject.id); }}
+                style={{ width: "100%", padding: "7px", background: "none", border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 12, color: t.textSec, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "'Lato',sans-serif" }}>
+                <Icons.upload /> Add critique to project
+              </button>
+            </div>
+
+            {projectCritiques.length === 0 ? (
+              /* Empty state centered with file picker CTA */
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 16px", gap: 10, textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: "'Lato',sans-serif", lineHeight: 1.6 }}>
+                  No critiques yet. Upload a screen to start getting feedback under this project.
+                </p>
+                <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleProjectFileChange} />
+                <button onClick={() => fileRef.current?.click()}
+                  style={{ padding: "8px 16px", background: t.brand, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontFamily: "'Lato',sans-serif", cursor: "pointer" }}>
+                  Upload first screen
+                </button>
+              </div>
+            ) : projectCritiques.map(critiqueRow)}
+          </>
+        )}
+      </div>
+      {/* No footer — removed */}
+    </div>
+  );
+}
+
+// ─── Version Button ───────────────────────────────────────────────────────────
+function VersionButton({ versions, activeIdx, onChange, onUploadNew, t }: {
+  versions: CritiqueVersion[]; activeIdx: number; onChange: (i: number) => void;
+  onUploadNew: () => void; t: typeof LIGHT;
+}) {
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const hasMultiple = versions.length > 1;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+        const f = e.target.files?.[0]; if (!f) return;
+        const r = new FileReader(); r.onload = () => onUploadNew(); r.readAsDataURL(f);
+      }} />
+      {hasMultiple ? (
+        <button onClick={() => setOpen(o => !o)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgCard, color: t.textSec, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>
+          <Icons.upload />
+          Version {activeIdx + 1}
+          <span style={{ color: t.textMuted, display: "flex" }}><Icons.chevronD /></span>
+        </button>
+      ) : (
+        <button
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          onClick={() => fileRef.current?.click()}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgCard, color: t.textSec, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif", transition: "all 0.2s", whiteSpace: "nowrap" }}>
+          <Icons.upload />
+          {hovered ? "Upload new version" : ""}
+        </button>
+      )}
+      {open && hasMultiple && (
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 30, background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden", boxShadow: t.shadow, minWidth: 180 }}>
+          {versions.map((v, i) => (
+            <div key={v.id} onClick={() => { onChange(i); setOpen(false); }}
+              style={{ padding: "9px 14px", fontSize: 13, color: i === activeIdx ? t.brand : t.text, fontFamily: "'Lato',sans-serif", cursor: "pointer", fontWeight: i === activeIdx ? 700 : 400, background: i === activeIdx ? t.bgHover : "transparent" }}
+              onMouseEnter={e => { if (i !== activeIdx) e.currentTarget.style.background = t.bgHover; }}
+              onMouseLeave={e => { if (i !== activeIdx) e.currentTarget.style.background = "transparent"; }}
+            >Version {i + 1} · {v.date}</div>
+          ))}
+          <div style={{ height: 1, background: t.border }} />
+          <div onClick={() => { fileRef.current?.click(); setOpen(false); }}
+            style={{ padding: "9px 14px", fontSize: 13, color: t.textSec, fontFamily: "'Lato',sans-serif", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+            onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          ><Icons.upload /> Upload new version</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Top Nav ──────────────────────────────────────────────────────────────────
+function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, critique, projects, activeVersionIdx, onVersionChange, onUploadNewVersion, onGoHome }: {
+  t: typeof LIGHT; dark: boolean; onToggleDark: () => void;
+  shards: number; badgeRef: React.RefObject<HTMLDivElement>; badgeBouncing: boolean;
+  view: string; critique: Critique | null; projects: Project[]; activeVersionIdx: number;
+  onVersionChange: (i: number) => void; onUploadNewVersion: (src: string) => void;
+  onGoHome: () => void;
+}) {
+  const isResults = view === "results" && critique;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const projectName = critique?.projectId ? projects.find(p => p.id === critique.projectId)?.name : null;
+
+  return (
+    <div style={{ height: t.navH, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", background: t.bgCard, flexShrink: 0, boxSizing: "border-box", padding: "0 16px", position: "relative" }}>
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+        const f = e.target.files?.[0]; if (!f) return;
+        const r = new FileReader(); r.onload = ev => onUploadNewVersion(ev.target?.result as string); r.readAsDataURL(f);
+      }} />
+
+      {/* Left */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+        {isResults && (
+          <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 4, display: "flex", borderRadius: 6 }}
+            onMouseEnter={e => e.currentTarget.style.background = t.bgHover}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          ><Icons.home /></button>
+        )}
+      </div>
+
+      {/* Center — absolute so it's truly centered */}
+      <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "none" }}>
+        {isResults && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: t.text, fontFamily: "'Lato',sans-serif" }}>{critique.name}</span>
+            {projectName && (
+              <>
+                <span style={{ fontSize: 13, color: t.border, fontFamily: "'Lato',sans-serif" }}>/</span>
+                <span style={{ fontSize: 13, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>{projectName}</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Right */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
+        {isResults && (
+          <VersionButton versions={critique.versions} activeIdx={activeVersionIdx} onChange={onVersionChange} onUploadNew={() => fileRef.current?.click()} t={t} />
+        )}
+        {!isResults && (
+          <button onClick={onToggleDark} style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "4px 12px", cursor: "pointer", color: t.textMuted, fontSize: 12, fontFamily: "'Lato',sans-serif" }}>
+            {dark ? "☀ Light" : "◐ Dark"}
+          </button>
+        )}
+        <ScoreBadge shards={shards} t={t} badgeRef={badgeRef} bouncing={badgeBouncing} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Upload Zone ──────────────────────────────────────────────────────────────
+function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null; onFile: (src: string) => void; onReset: () => void; t: typeof LIGHT; glass?: boolean }) {
+  const [drag, setDrag] = useState(false);
+  const [tab, setTab] = useState<"screenshot" | "figma">("screenshot");
+  const [figmaUrl, setFigmaUrl] = useState("");
+
+  const process = useCallback((file?: File | null) => {
+    if (!file?.type.startsWith("image/")) return;
+    const r = new FileReader();
+    r.onload = e => onFile(e.target?.result as string);
+    r.readAsDataURL(file);
+  }, [onFile]);
+
+  const cardBg = glass ? "rgba(255,255,255,0.35)" : t.bgCard;
+  const tabActiveBg = glass ? "rgba(255,255,255,0.7)" : t.bgCard;
+  const tabBg = glass ? "rgba(255,255,255,0.2)" : t.bgHover;
+  const dropBg = drag ? (glass ? "rgba(196,160,232,0.15)" : t.bgHover) : cardBg;
+
+  return (
+    <div style={{ width: "100%" }}>
+      {!image && (
+        <div style={{ display: "flex", gap: 0, marginBottom: 12, background: tabBg, borderRadius: 10, padding: 3, width: "100%" }}>
+          {(["screenshot", "figma"] as const).map(tab_ => (
+            <button key={tab_} onClick={() => setTab(tab_)}
+              style={{ flex: 1, padding: "6px 16px", borderRadius: 8, border: "none", background: tab === tab_ ? tabActiveBg : "transparent", color: tab === tab_ ? t.text : t.textMuted, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif", fontWeight: tab === tab_ ? 600 : 400, boxShadow: tab === tab_ ? t.shadow : "none", transition: "all 0.15s" }}>
+              {tab_ === "screenshot" ? "Screenshot" : "Figma link"}
+            </button>
+          ))}
+        </div>
+      )}
+      {tab === "screenshot" || image ? (
+        <div style={{ width: "100%", minHeight: 160, border: `2px dashed ${drag ? t.brand : image ? t.brand + "60" : glass ? "rgba(196,160,232,0.5)" : t.border}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: image ? "default" : "pointer", background: dropBg, transition: "all 0.2s", overflow: "hidden", position: "relative" }}
+          onDrop={e => { e.preventDefault(); setDrag(false); process(e.dataTransfer.files[0]); }}
+          onDragOver={e => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onClick={() => !image && document.getElementById("seer-fi")?.click()}
+        >
+          {image ? (
+            <>
+              <img src={image} style={{ width: "100%", maxHeight: 180, objectFit: "contain", borderRadius: 12, display: "block" }} alt="" />
+              <button onClick={e => { e.stopPropagation(); onReset(); }} style={{ position: "absolute", top: 8, right: 8, background: "rgba(26,10,46,0.75)", border: "none", borderRadius: 6, color: "#fff", fontSize: 13, padding: "3px 9px", cursor: "pointer" }}>✕</button>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: 32 }}>
+              <div style={{ fontSize: 28, color: t.brand, marginBottom: 10 }}>↑</div>
+              <p style={{ color: t.text, fontSize: 16, margin: "0 0 6px", fontFamily: "'Lato',sans-serif" }}>Drop your screenshot here</p>
+              <p style={{ color: t.textMuted, fontSize: 13, margin: 0, fontFamily: "'Lato',sans-serif" }}>PNG or JPG</p>
+            </div>
+          )}
+          <input id="seer-fi" type="file" accept="image/*" style={{ display: "none" }} onChange={e => process(e.target.files?.[0])} />
+        </div>
+      ) : (
+        <div style={{ width: "100%", padding: 20, border: `1px solid ${glass ? "rgba(196,160,232,0.4)" : t.border}`, borderRadius: 14, background: glass ? "rgba(255,255,255,0.3)" : t.bgCard, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="text" placeholder="https://www.figma.com/file/..." value={figmaUrl} onChange={e => setFigmaUrl(e.target.value)}
+              style={{ flex: 1, padding: "10px 14px", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 14, outline: "none", fontFamily: "'Lato',sans-serif" }} />
+            <button onClick={() => navigator.clipboard.readText().then(setFigmaUrl)}
+              style={{ padding: "10px 16px", background: t.bgHover, border: `1px solid ${t.border}`, borderRadius: 8, color: t.textSec, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif", whiteSpace: "nowrap" }}>
+              Paste
+            </button>
+          </div>
+          <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>
+            Paste your frame link — make sure it's set to "anyone with link can view" in Figma's share settings.
+          </p>
+          <button disabled={!figmaUrl.includes("figma.com")}
+            style={{ padding: "10px 20px", background: figmaUrl.includes("figma.com") ? t.brand : t.bgHover, color: figmaUrl.includes("figma.com") ? "#fff" : t.textMuted, border: "none", borderRadius: 8, fontSize: 13, cursor: figmaUrl.includes("figma.com") ? "pointer" : "not-allowed", fontFamily: "'Lato',sans-serif" }}>
+            Import frame
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Context Form ─────────────────────────────────────────────────────────────
+function ContextForm({ onReady, t, projectCtx }: { onReady: (d: FormData) => void; t: typeof LIGHT; projectCtx?: Project }) {
+  const [step, setStep] = useState(projectCtx ? 2 : 1);
+  const [productType, setProductType] = useState<string | null>(projectCtx?.productType || null);
+  const [other, setOther] = useState(false);
+  const [users, setUsers] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [criteria, setCriteria] = useState(initCriteria());
+  const selected = CRITERIA_OPTIONS.filter(c => criteria[c.id]).map(c => c.label);
+  const inp: React.CSSProperties = { width: "100%", padding: "11px 14px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 14, boxSizing: "border-box", outline: "none", fontFamily: "'Lato',sans-serif" };
+  const ghost: React.CSSProperties = { alignSelf: "flex-start", padding: "7px 18px", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 13, cursor: "pointer", color: t.textSec, fontFamily: "'Lato',sans-serif" };
+  const lbl: React.CSSProperties = { color: t.text, fontSize: 15, fontFamily: "'Lato',sans-serif", fontWeight: 700, margin: 0 };
+  const hint: React.CSSProperties = { color: t.textMuted, fontSize: 12, margin: 0, fontFamily: "'Lato',sans-serif" };
+
+  return (
+    <div style={{ width: "100%", maxWidth: 540, marginTop: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+      {!projectCtx && (
+        <FadeIn>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>What kind of product is this?</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {PRODUCT_TYPES.map(type => {
+                const active = type === "Other" ? other : productType === type && !other;
+                return <button key={type} onClick={() => { setProductType(type); if (type !== "Other") { setOther(false); if (step === 1) setStep(2); } else setOther(true); }}
+                  style={{ padding: "7px 16px", borderRadius: 100, border: `1px solid ${active ? t.brand : t.border}`, background: active ? t.brand : "transparent", color: active ? "#fff" : t.textSec, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>{type}</button>;
+              })}
+            </div>
+            {other && <input autoFocus type="text" placeholder="Describe your product type" style={inp} onChange={e => { setProductType(e.target.value); if (step === 1 && e.target.value.trim()) setStep(2); }} />}
+          </div>
+        </FadeIn>
+      )}
+      {step >= 2 && (
+        <FadeIn delay={projectCtx ? 0 : 80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>Who are the primary users?</p>
+            {projectCtx && <p style={hint}>Project default: {projectCtx.primaryUsers} — add more context if needed</p>}
+            <input autoFocus type="text" placeholder={projectCtx ? "Add more context for this critique..." : "e.g. Field technicians, small business owners"} value={users} onChange={e => setUsers(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && (users.trim() || projectCtx) && step === 2) setStep(3); }} style={inp} />
+            {(users.trim() || projectCtx) && step === 2 && <button onClick={() => setStep(3)} style={ghost}>Next →</button>}
+          </div>
+        </FadeIn>
+      )}
+      {step >= 3 && (
+        <FadeIn delay={80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>Anything I should know?</p>
+            <p style={hint}>Stakeholder constraints, technical limits — optional</p>
+            <textarea placeholder="e.g. Navigation labels are stakeholder-mandated" value={constraints} onChange={e => setConstraints(e.target.value)} style={{ ...inp, resize: "vertical" }} rows={3} />
+            <button onClick={() => setStep(4)} style={ghost}>{constraints.trim() ? "Next →" : "Skip →"}</button>
+          </div>
+        </FadeIn>
+      )}
+      {step >= 4 && (
+        <FadeIn delay={80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>What should I focus on?</p>
+            <p style={hint}>Defaults selected — toggle to adjust</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {CRITERIA_OPTIONS.map(c => {
+                const on = criteria[c.id];
+                return <button key={c.id} onClick={() => setCriteria(prev => ({ ...prev, [c.id]: !prev[c.id] }))}
+                  style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${on ? t.brand : t.border}`, background: on ? t.brand + "18" : "transparent", color: on ? t.textAcc : t.textMuted, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>{on ? "✓ " : ""}{c.label}</button>;
+              })}
+            </div>
+            <button disabled={selected.length === 0}
+              onClick={() => onReady({ productType: projectCtx?.productType || productType, primaryUsers: users || projectCtx?.primaryUsers || "", constraints: [projectCtx?.constraints, constraints].filter(Boolean).join(". "), criteria: selected })}
+              style={{ marginTop: 8, padding: "14px 40px", background: t.brand, color: "#fff", border: "none", borderRadius: 12, fontSize: 16, fontFamily: "'Cormorant Unicase',serif", fontWeight: 500, cursor: selected.length === 0 ? "not-allowed" : "pointer", opacity: selected.length === 0 ? 0.4 : 1, boxShadow: `0 0 24px ${t.brand}55`, alignSelf: "center" }}>
+              Get the Reading
+            </button>
+          </div>
+        </FadeIn>
+      )}
+    </div>
+  );
+}
+
+// ─── New Project Flow ─────────────────────────────────────────────────────────
+function NewProjectFlow({ t, onSave, onCancel }: { t: typeof LIGHT; onSave: (p: Project, image?: string) => void; onCancel: () => void }) {
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [productType, setProductType] = useState<string | null>(null);
+  const [other, setOther] = useState(false);
+  const [users, setUsers] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [firstImage, setFirstImage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const inp: React.CSSProperties = { width: "100%", padding: "11px 14px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 14, boxSizing: "border-box", outline: "none", fontFamily: "'Lato',sans-serif" };
+  const ghost: React.CSSProperties = { alignSelf: "flex-start", padding: "7px 18px", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 13, cursor: "pointer", color: t.textSec, fontFamily: "'Lato',sans-serif" };
+  const lbl: React.CSSProperties = { color: t.text, fontSize: 15, fontFamily: "'Lato',sans-serif", fontWeight: 700, margin: 0 };
+
+  const processFile = (file?: File | null) => {
+    if (!file?.type.startsWith("image/")) return;
+    const r = new FileReader();
+    r.onload = e => setFirstImage(e.target?.result as string);
+    r.readAsDataURL(file);
+  };
+
+  return (
+    <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 24 }}>
+      <div>
+        <p style={{ color: t.text, fontSize: 24, fontFamily: "'Cormorant Unicase',serif", margin: "0 0 4px" }}>New Project</p>
+        <p style={{ color: t.textMuted, fontSize: 14, margin: 0, fontFamily: "'Lato',sans-serif" }}>Projects group related critiques with shared context.</p>
+      </div>
+      <FadeIn>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={lbl}>Project name</p>
+          <input autoFocus type="text" placeholder="e.g. Vantage Dashboard" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && name.trim()) setStep(2); }} style={inp} />
+          {name.trim() && step === 1 && <button onClick={() => setStep(2)} style={ghost}>Next →</button>}
+        </div>
+      </FadeIn>
+      {step >= 2 && (
+        <FadeIn delay={80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>What kind of product?</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {PRODUCT_TYPES.map(type => {
+                const active = type === "Other" ? other : productType === type && !other;
+                return <button key={type} onClick={() => { setProductType(type); if (type !== "Other") { setOther(false); if (step === 2) setStep(3); } else setOther(true); }}
+                  style={{ padding: "7px 16px", borderRadius: 100, border: `1px solid ${active ? t.brand : t.border}`, background: active ? t.brand : "transparent", color: active ? "#fff" : t.textSec, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>{type}</button>;
+              })}
+            </div>
+            {other && <input autoFocus type="text" placeholder="Describe the product" style={inp} onChange={e => { setProductType(e.target.value); if (step === 2 && e.target.value.trim()) setStep(3); }} />}
+          </div>
+        </FadeIn>
+      )}
+      {step >= 3 && (
+        <FadeIn delay={80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>Primary users</p>
+            <input autoFocus type="text" placeholder="e.g. Operations teams, designers" value={users} onChange={e => setUsers(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && users.trim()) setStep(4); }} style={inp} />
+            {users.trim() && step === 3 && <button onClick={() => setStep(4)} style={ghost}>Next →</button>}
+          </div>
+        </FadeIn>
+      )}
+      {step >= 4 && (
+        <FadeIn delay={80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>Known constraints</p>
+            <p style={{ color: t.textMuted, fontSize: 12, margin: 0, fontFamily: "'Lato',sans-serif" }}>Optional — applies to all critiques in this project</p>
+            <textarea placeholder="e.g. Nav labels are stakeholder-mandated" value={constraints} onChange={e => setConstraints(e.target.value)} style={{ ...inp, resize: "vertical" }} rows={3} />
+            <button onClick={() => setStep(5)} style={ghost}>{constraints.trim() ? "Next →" : "Skip →"}</button>
+          </div>
+        </FadeIn>
+      )}
+      {step >= 5 && (
+        <FadeIn delay={80}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={lbl}>Upload the first screen under this project</p>
+            <p style={{ color: t.textMuted, fontSize: 12, margin: 0, fontFamily: "'Lato',sans-serif" }}>Optional — you can add screens later too</p>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => processFile(e.target.files?.[0])} />
+            {firstImage ? (
+              <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.border}` }}>
+                <img src={firstImage} style={{ width: "100%", maxHeight: 160, objectFit: "contain", display: "block" }} alt="" />
+                <button onClick={() => setFirstImage(null)} style={{ position: "absolute", top: 6, right: 6, background: "rgba(26,10,46,0.75)", border: "none", borderRadius: 6, color: "#fff", fontSize: 12, padding: "2px 8px", cursor: "pointer" }}>✕</button>
+              </div>
+            ) : (
+              <div onClick={() => fileRef.current?.click()}
+                style={{ border: `2px dashed ${t.border}`, borderRadius: 10, padding: "24px 16px", textAlign: "center", cursor: "pointer", background: t.bgHover }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = t.brand}
+                onMouseLeave={e => e.currentTarget.style.borderColor = t.border}
+              >
+                <div style={{ fontSize: 22, color: t.brand, marginBottom: 6 }}>↑</div>
+                <p style={{ margin: 0, fontSize: 13, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>Click to upload a screen</p>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+              <button onClick={onCancel} style={{ padding: "10px 22px", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 10, fontSize: 14, cursor: "pointer", color: t.textSec, fontFamily: "'Lato',sans-serif" }}>Cancel</button>
+              <button onClick={() => onSave({ id: uid(), name, productType: productType || "Web App", primaryUsers: users, constraints }, firstImage || undefined)}
+                style={{ padding: "10px 28px", background: t.brand, color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontFamily: "'Cormorant Unicase',serif", cursor: "pointer", boxShadow: `0 0 20px ${t.brand}55` }}>
+                {firstImage ? "Save and get reading" : "Save project"}
+              </button>
+            </div>
+          </div>
+        </FadeIn>
+      )}
+    </div>
+  );
+}
+
+// ─── Criteria Card ────────────────────────────────────────────────────────────
+function CriteriaCard({ item, onScoreChange, onResolve, t }: { item: CriteriaItem; onScoreChange: (delta: number) => void; onResolve: () => void; t: typeof LIGHT }) {
+  const [open, setOpen] = useState(false);
+  const [context, setContext] = useState("");
+  const [reconsidering, setReconsidering] = useState(false);
+  const [reconsidered, setReconsidered] = useState(false);
+  const [reconsideredSeverity, setReconsideredSeverity] = useState<Severity>(item.severity);
+  const [resolved, setResolved] = useState(false);
+  const [ignored, setIgnored] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const sevColor = { critical: t.critical, minor: t.minor, passed: t.passed }[reconsidered ? reconsideredSeverity : item.severity] || t.passed;
+  const displaySeverity = reconsidered ? reconsideredSeverity : item.severity;
+
+  const handleSubmitContext = () => {
+    if (!context.trim()) return;
+    setReconsidering(true);
+    setTimeout(() => {
+      setReconsidering(false);
+      setReconsidered(true);
+      const order: Severity[] = ["critical", "minor", "passed"];
+      const idx = order.indexOf(item.severity);
+      setReconsideredSeverity(order[Math.min(idx + 1, 2)]);
+      setContext("");
+    }, 1800);
+  };
+
+  const handleResolve = () => {
+    setResolved(v => !v);
+    if (!resolved) onResolve();
+  };
+
+  if (ignored) return (
+    <div style={{ background: t.bgCard, border: `1px solid ${t.border}30`, borderRadius: 10, padding: "11px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span style={{ color: t.textMuted, fontSize: 13, fontFamily: "'Lato',sans-serif" }}>{item.name} — ignored</span>
+      <button style={{ background: "none", border: "none", color: t.brand, fontSize: 13, cursor: "pointer", fontFamily: "'Lato',sans-serif" }} onClick={() => { setIgnored(false); onScoreChange(+1); }}>Undo</button>
+    </div>
+  );
+
+  return (
+    <div style={{ background: t.bgCard, border: `1px solid ${resolved ? t.passed : t.border}`, borderRadius: 10, transition: "border-color 0.2s" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ color: t.text, fontSize: 13, fontFamily: "'Lato',sans-serif", fontWeight: 600 }}>{item.name}</span>
+          <span style={{ color: t.textMuted, fontSize: 12, fontFamily: "'Lato',sans-serif" }}>{item.score}/10</span>
+          {resolved && <span style={{ color: t.passed, fontSize: 11 }}>✓</span>}
+          {reconsidered && <span style={{ color: t.passed, fontSize: 10, fontFamily: "'Lato',sans-serif", background: t.passed + "18", padding: "1px 6px", borderRadius: 4 }}>reconsidered</span>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+          <span style={{ padding: "2px 8px", borderRadius: 100, border: `1px solid ${sevColor}`, background: sevColor + "18", color: sevColor, fontSize: 11, fontFamily: "'Lato',sans-serif", textTransform: "capitalize" }}>{displaySeverity}</span>
+          {saved && <span style={{ color: t.brand, fontSize: 9 }}>●</span>}
+          <span style={{ color: t.textMuted, fontSize: 11 }}>{open ? "▲" : "▼"}</span>
+        </div>
+      </div>
+      {open && (
+        <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${t.border}`, display: "flex", flexDirection: "column", gap: 12 }}>
+          {[{ label: "OBSERVATION", text: item.observation, italic: false }, { label: "CONSEQUENCE", text: item.consequence, italic: true }, { label: "FIX", text: item.fix, italic: false }].map(({ label, text, italic }) => (
+            <div key={label} style={{ paddingTop: 12 }}>
+              <p style={{ color: t.textMuted, fontSize: 10, letterSpacing: 1.5, margin: "0 0 4px", fontFamily: "'Lato',sans-serif" }}>{label}</p>
+              <p style={{ color: t.textAcc, fontSize: 13, lineHeight: 1.6, margin: 0, fontFamily: "'Lato',sans-serif", fontStyle: italic ? "italic" : "normal" }}>{text}</p>
+            </div>
+          ))}
+          <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 10 }}>
+            <p style={{ color: t.textMuted, fontSize: 10, letterSpacing: 1.5, margin: "0 0 6px", fontFamily: "'Lato',sans-serif" }}>ADD CONTEXT</p>
+            {reconsidering ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0" }}>
+                <div style={{ width: 14, height: 14, border: `2px solid ${t.brand}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                <span style={{ color: t.textMuted, fontSize: 13, fontFamily: "'Lato',sans-serif" }}>Seer is reconsidering...</span>
+              </div>
+            ) : (
+              <div style={{ position: "relative" }}>
+                <textarea placeholder="Share what Seer might have missed — constraints, intent, or trade-offs..." value={context} onChange={e => setContext(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmitContext(); } }}
+                  style={{ width: "100%", padding: "9px 12px 36px 12px", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 13, boxSizing: "border-box", outline: "none", resize: "none", fontFamily: "'Lato',sans-serif" }} rows={2} />
+                {context.trim() && (
+                  <button onClick={handleSubmitContext} style={{ position: "absolute", right: 7, bottom: 7, background: t.brand, border: "none", borderRadius: 6, color: "#fff", fontSize: 12, padding: "4px 10px", cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>Submit</button>
+                )}
+              </div>
+            )}
+            {reconsidered && !reconsidering && (
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: t.passed, fontFamily: "'Lato',sans-serif" }}>✓ Seer has taken your context on board · severity updated</p>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 14 }}>
+            <button style={{ background: "none", border: "none", fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "'Lato',sans-serif", color: resolved ? t.passed : t.textMuted }} onClick={handleResolve}>{resolved ? "✓ Resolved" : "Mark resolved"}</button>
+            <button style={{ background: "none", border: "none", fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "'Lato',sans-serif", color: saved ? t.brand : t.textMuted }} onClick={() => setSaved(v => !v)}>{saved ? "✓ Saved" : "Save for later"}</button>
+            <button style={{ background: "none", border: "none", fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "'Lato',sans-serif", color: t.critical }} onClick={() => { setIgnored(true); onScoreChange(-1); }}>Ignore</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Image Selector ───────────────────────────────────────────────────────────
+type Rect = { x: number; y: number; w: number; h: number };
+
+function ImageSelector({ image, t, onCritiqueElement, onCloseElement, onRegisterClear }: {
+  image: string; t: typeof LIGHT;
+  onCritiqueElement?: () => void;
+  onCloseElement?: () => void;
+  onRegisterClear?: (fn: () => void) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [start, setStart] = useState<{ x: number; y: number } | null>(null);
+  const [rect, setRect] = useState<Rect | null>(null);
+  const [confirmed, setConfirmed] = useState<Rect | null>(null);
+  const [critiqued, setCritiqued] = useState(false);
+  const [hovering, setHovering] = useState(false);
+
+  useEffect(() => {
+    if (onRegisterClear) {
+      onRegisterClear(() => { setConfirmed(null); setRect(null); setCritiqued(false); });
+    }
+  }, []);
+
+  const toRelative = (clientX: number, clientY: number) => {
+    const el = containerRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const b = el.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(1, (clientX - b.left) / b.width)),
+      y: Math.max(0, Math.min(1, (clientY - b.top) / b.height)),
+    };
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
+    const pos = toRelative(e.clientX, e.clientY);
+    setStart(pos);
+    setRect(null);
+    setConfirmed(null);
+    setCritiqued(false);
+    setDragging(true);
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging || !start) return;
+    const pos = toRelative(e.clientX, e.clientY);
+    setRect({ x: Math.min(start.x, pos.x), y: Math.min(start.y, pos.y), w: Math.abs(pos.x - start.x), h: Math.abs(pos.y - start.y) });
+  };
+
+  const onMouseUp = () => {
+    if (!dragging) return;
+    setDragging(false);
+    setStart(null);
+    if (rect && rect.w > 0.02 && rect.h > 0.02) { setConfirmed(rect); } else { setRect(null); }
+  };
+
+  const displayRect = rect || confirmed;
+
+  return (
+    <div ref={containerRef}
+      style={{ position: "relative", width: "100%", borderRadius: 12, border: `1px solid ${t.border}`, cursor: hovering ? "crosshair" : "default", userSelect: "none" }}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => { setHovering(false); if (dragging) { setDragging(false); setStart(null); } }}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+    >
+      <img src={image} alt="Design" style={{ width: "100%", display: "block", borderRadius: 12 }} draggable={false} />
+      {hovering && !dragging && !confirmed && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(123,47,247,0.04)", borderRadius: 12, pointerEvents: "none" }} />
+      )}
+      {displayRect && (
+        <>
+          {/* Dim overlay */}
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.38)", pointerEvents: "none", borderRadius: 12 }} />
+          {/* Selection window */}
+          <div style={{ position: "absolute", left: `${displayRect.x * 100}%`, top: `${displayRect.y * 100}%`, width: `${displayRect.w * 100}%`, height: `${displayRect.h * 100}%`, boxShadow: `0 0 0 9999px rgba(0,0,0,0.38)`, border: `2px solid ${t.brand}`, borderRadius: 4, pointerEvents: "none", background: "transparent" }} />
+          {/* Corner handles */}
+          {confirmed && [[0, 0], [1, 0], [0, 1], [1, 1]].map(([cx, cy], i) => (
+            <div key={i} style={{ position: "absolute", left: `calc(${(displayRect!.x + cx * displayRect!.w) * 100}% - 4px)`, top: `calc(${(displayRect!.y + cy * displayRect!.h) * 100}% - 4px)`, width: 8, height: 8, background: t.brand, borderRadius: 2, pointerEvents: "none" }} />
+          ))}
+          {/* Close button — top-right corner of selection */}
+          {confirmed && (
+            <button
+              onClick={e => { e.stopPropagation(); setConfirmed(null); setRect(null); setCritiqued(false); if (onCloseElement) onCloseElement(); }}
+              style={{ position: "absolute", left: `calc(${displayRect!.x * 100 + displayRect!.w * 100}% - 12px)`, top: `calc(${displayRect!.y * 100}% - 12px)`, width: 24, height: 24, background: t.brand, border: "none", borderRadius: "50%", color: "#fff", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, lineHeight: 1 }}>✕</button>
+          )}
+          {/* Critique tooltip — hidden after critiqued */}
+          {confirmed && !critiqued && (
+            <div style={{ position: "absolute", left: `${displayRect!.x * 100}%`, top: `calc(${(displayRect!.y + displayRect!.h) * 100}% + 8px)`, zIndex: 20, background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 10px", display: "flex", gap: 8, alignItems: "center", boxShadow: t.shadow, whiteSpace: "nowrap" }}>
+              <button
+                onClick={e => { e.stopPropagation(); setCritiqued(true); if (onCritiqueElement) onCritiqueElement(); }}
+                style={{ background: t.brand, border: "none", borderRadius: 6, color: "#fff", fontSize: 12, padding: "4px 12px", cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>
+                Critique this element
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Results Screen ───────────────────────────────────────────────────────────
+function ResultsScreen({ critique, activeVersionIdx, onVersionChange, onNewVersion, t, onShardsEarned }: {
+  critique: Critique; activeVersionIdx: number; onVersionChange: (i: number) => void;
+  onNewVersion: (src: string) => void; t: typeof LIGHT; onShardsEarned: (n: number) => void;
+}) {
+  const version = critique.versions[activeVersionIdx];
+  const [score, setScore] = useState(version.results.overall_score);
+  const [shardAnim, setShardAnim] = useState(false);
+  const [elementMode, setElementMode] = useState(false);
+  const [elementCritique, setElementCritique] = useState<string | null>(null);
+  const [elementLoading, setElementLoading] = useState(false);
+  const clearSelectionRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => setScore(version.results.overall_score), [version]);
+  const activeCount = version.results.criteria.filter(c => c.severity !== "passed").length;
+
+  const handleResolve = () => {
+    onShardsEarned(0.5);
+    setShardAnim(true);
+    setTimeout(() => setShardAnim(false), 1200);
+  };
+
+  const handleCritiqueElement = () => {
+    setElementMode(true);
+    setElementCritique(null);
+    setElementLoading(true);
+    setTimeout(() => {
+      setElementLoading(false);
+      setElementCritique("The selected element has unclear affordance. Users are unlikely to recognise it as interactive without an explicit hover state or label. Consider adding a visible boundary or descriptive microcopy to set expectations before the user acts.");
+    }, 2000);
+  };
+
+  const handleCloseElementMode = () => {
+    setElementMode(false);
+    setElementCritique(null);
+    setElementLoading(false);
+    if (clearSelectionRef.current) clearSelectionRef.current();
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+      {/* Left */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "28px 24px 80px", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          <span style={{ fontFamily: "'Cormorant Unicase',serif", fontSize: 72, fontWeight: 300, color: t.text, lineHeight: 1 }}>{score.toFixed(1)}</span>
+          <span style={{ fontFamily: "'Cormorant Unicase',serif", fontSize: 28, color: t.textMuted }}>/10</span>
+        </div>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8 }}>
+          {[{ c: t.critical, n: version.results.summary.critical, l: "Critical" }, { c: t.minor, n: version.results.summary.minor, l: "Minor" }, { c: t.passed, n: version.results.summary.passed, l: "Passed" }].map(({ c, n, l }) => (
+            <span key={l} style={{ color: t.textSec, fontSize: 13, display: "flex", alignItems: "center", gap: 5, fontFamily: "'Lato',sans-serif" }}><span style={{ color: c }}>⬤</span>{n} {l}</span>
+          ))}
+        </div>
+        <p style={{ color: t.textAcc, fontSize: 14, fontStyle: "italic", lineHeight: 1.7, margin: "16px 0 20px", fontFamily: "'Lato',sans-serif" }}>{version.results.overall_reading}</p>
+        <div style={{ height: 1, background: t.border, marginBottom: 20 }} />
+        <ImageSelector
+          image={version.image} t={t}
+          onCritiqueElement={handleCritiqueElement}
+          onCloseElement={handleCloseElementMode}
+          onRegisterClear={fn => { clearSelectionRef.current = fn; }}
+        />
+        {shardAnim && (
+          <div style={{ position: "fixed", bottom: 80, left: "30%", fontSize: 24, animation: "shardFloat 1s ease forwards", pointerEvents: "none", zIndex: 100 }}>+0.5 ✦</div>
+        )}
+      </div>
+
+      {/* Right — findings panel */}
+      <div style={{ width: 360, flexShrink: 0, borderLeft: `1px solid ${t.border}`, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+        {elementMode ? (
+          <>
+            <div style={{ padding: "16px 16px 12px", borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: t.text, fontFamily: "'Lato',sans-serif" }}>Element Critique</p>
+                <p style={{ margin: "2px 0 0", fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>Selected area only</p>
+              </div>
+              <button onClick={handleCloseElementMode}
+                style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 18, padding: 2, flexShrink: 0, lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "16px 14px" }}>
+              {elementLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 }}>
+                  <div style={{ width: 20, height: 20, border: `2px solid ${t.brand}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                  <p style={{ color: t.textMuted, fontSize: 13, fontFamily: "'Lato',sans-serif", margin: 0 }}>Analysing element...</p>
+                </div>
+              ) : elementCritique ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ background: t.bgHover, borderRadius: 10, padding: 14 }}>
+                    <p style={{ margin: "0 0 8px", fontSize: 10, letterSpacing: 1.5, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>ELEMENT FEEDBACK</p>
+                    <p style={{ margin: 0, fontSize: 13, color: t.textAcc, lineHeight: 1.7, fontFamily: "'Lato',sans-serif" }}>{elementCritique}</p>
+                  </div>
+                  <button onClick={handleCloseElementMode}
+                    style={{ padding: "8px 0", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 13, color: t.textSec, cursor: "pointer", fontFamily: "'Lato',sans-serif" }}>
+                    ← Back to full critique
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ padding: "20px 16px 12px", borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: t.text, fontFamily: "'Lato',sans-serif" }}>Findings</p>
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: t.textMuted, fontFamily: "'Lato',sans-serif" }}>{activeCount} finding{activeCount !== 1 ? "s" : ""} to review</p>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {version.results.criteria.map(item => (
+                <CriteriaCard key={item.name} item={item} t={t}
+                  onScoreChange={d => setScore(s => Math.round(Math.max(0, Math.min(10, s + d * 0.4)) * 10) / 10)}
+                  onResolve={handleResolve}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Loading ──────────────────────────────────────────────────────────────────
+function LoadingScreen({ t }: { t: typeof LIGHT }) {
+  const msgs = ["Analysing your design...", "Looking for patterns...", "Preparing your critique...", "Almost ready..."];
+  const [i, setI] = useState(0);
+  useEffect(() => { const timer = setInterval(() => setI(n => (n + 1) % msgs.length), 2000); return () => clearInterval(timer); }, []);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: 20, minHeight: 400 }}>
+      <div style={{ fontSize: 52, animation: "pulse 2s ease-in-out infinite" }}>🔮</div>
+      <p style={{ color: t.textSec, fontSize: 17, fontFamily: "'Lato',sans-serif", margin: 0 }}>{msgs[i]}</p>
+    </div>
+  );
+}
+
+// ─── Sparkle SVG ─────────────────────────────────────────────────────────────
+const SPARKLE_ANIMS = ["sparklePulse", "sparklePulse2", "sparklePulse3"];
+const SPARKLES = [
+  { top: "8%",  left: "6%",   size: 48, anim: 0, dur: "4.2s" },
+  { top: "18%", left: "88%",  size: 28, anim: 1, dur: "5.8s" },
+  { top: "54%", left: "3%",   size: 20, anim: 2, dur: "3.9s" },
+  { top: "72%", left: "91%",  size: 36, anim: 0, dur: "6.1s" },
+  { top: "38%", left: "94%",  size: 18, anim: 1, dur: "4.7s" },
+  { top: "85%", left: "14%",  size: 30, anim: 2, dur: "5.3s" },
+];
+
+function SparkleSVG({ size, animName, dur }: { size: number; animName: string; dur: string }) {
+  const id = `grain-${size}-${animName}`;
+  const half = size / 2;
+  const q = size / 4;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ animation: `${animName} ${dur} ease-in-out infinite`, display: "block" }}>
+      <defs>
+        <filter id={id}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch" result="noise" />
+          <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+          <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply" result="blended" />
+          <feComposite in="blended" in2="SourceGraphic" operator="in" />
+        </filter>
+      </defs>
+      {/* Four-point star */}
+      <path
+        d={`M${half},0 L${half + q * 0.3},${half - q * 0.3} L${size},${half} L${half + q * 0.3},${half + q * 0.3} L${half},${size} L${half - q * 0.3},${half + q * 0.3} L0,${half} L${half - q * 0.3},${half - q * 0.3} Z`}
+        fill="#c4a0e8"
+        filter={`url(#${id})`}
+      />
+    </svg>
+  );
+}
+
+// ─── Glowing Blobs ────────────────────────────────────────────────────────────
+const BLOBS = [
+  { top: "-10%", left: "-8%",  size: 520, color: "rgba(210,170,255,0.38)", anim: "blobDrift1", dur: "12s" },
+  { top: "55%",  left: "70%",  size: 440, color: "rgba(255,200,220,0.32)", anim: "blobDrift2", dur: "15s" },
+  { top: "30%",  left: "40%",  size: 360, color: "rgba(230,210,255,0.28)", anim: "blobDrift3", dur: "10s" },
+  { top: "75%",  left: "-5%",  size: 400, color: "rgba(255,220,235,0.30)", anim: "blobDrift4", dur: "13s" },
+];
+
+// ─── Landing ──────────────────────────────────────────────────────────────────
+function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectCtx?: Project; onFormReady: (img: string, fd: FormData) => void }) {
+  const [image, setImage] = useState<string | null>(null);
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", position: "relative" }}>
+
+      {/* ── Background image ── */}
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 0,
+        backgroundImage: `url('/attached_assets/abstract-pastel-pink-white-gradient-background__1_.jpg')`,
+        backgroundSize: "cover", backgroundPosition: "center",
+      }} />
+
+      {/* ── Glowing blobs ── */}
+      {BLOBS.map((b, i) => (
+        <div key={i} style={{
+          position: "fixed", top: b.top, left: b.left, zIndex: 1, pointerEvents: "none",
+          width: b.size, height: b.size, borderRadius: "50%",
+          background: `radial-gradient(circle, ${b.color} 0%, transparent 70%)`,
+          filter: "blur(40px)",
+          animation: `${b.anim} ${b.dur} ease-in-out infinite`,
+          mixBlendMode: "multiply",
+        }} />
+      ))}
+
+      {/* ── Sparkles ── */}
+      {SPARKLES.map((s, i) => (
+        <div key={i} style={{ position: "fixed", top: s.top, left: s.left, zIndex: 2, pointerEvents: "none" }}>
+          <SparkleSVG size={s.size} animName={SPARKLE_ANIMS[s.anim]} dur={s.dur} />
+        </div>
+      ))}
+
+      {/* ── Ghost "SEER" behind everything ── */}
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1,
+        overflow: "hidden", pointerEvents: "none", lineHeight: 0.85,
+      }}>
+        <p style={{
+          fontFamily: "'Gasoek One', sans-serif",
+          fontSize: "clamp(80px, 18vw, 280px)",
+          color: "#b890e0",
+          margin: 0, padding: 0,
+          whiteSpace: "nowrap",
+          letterSpacing: "-0.02em",
+          textAlign: "center",
+          opacity: 0.22,
+          userSelect: "none",
+          lineHeight: 0.88,
+        }}>SEER</p>
+      </div>
+
+      {/* ── Foreground content ── */}
+      <div style={{
+        position: "relative", zIndex: 3,
+        display: "flex", flexDirection: "column", alignItems: "center",
+        padding: "72px 32px 100px", minHeight: "100%",
+      }}>
+        {/* Main headline */}
+        <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640 }}>
+          <h1 style={{
+            fontFamily: "'Instrument Serif', serif",
+            fontSize: "clamp(28px, 4vw, 52px)",
+            fontWeight: 400,
+            color: "#2d1060",  /* 8.1:1 contrast on pastel bg ✓ */
+            margin: "0 0 12px",
+            lineHeight: 1.2,
+            letterSpacing: "-0.01em",
+          }}>
+            Upload your design.<br />
+            Get real <em style={{ fontStyle: "italic" }}>critique.</em>
+          </h1>
+          <p style={{
+            fontFamily: "'Lato', sans-serif",
+            fontSize: 16,
+            color: "#4a2878", /* 5.4:1 contrast ✓ */
+            margin: 0,
+            letterSpacing: 0.2,
+          }}>
+            Structured, heuristic-based feedback — in seconds.
+          </p>
+        </div>
+
+        {/* Glass upload card */}
+        <div style={{
+          width: "100%", maxWidth: 560,
+          background: "rgba(255,255,255,0.55)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.7)",
+          borderRadius: 20,
+          padding: 24,
+          boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",
+        }}>
+          <UploadZone image={image} onFile={setImage} onReset={() => setImage(null)} t={t} glass />
+        </div>
+
+        {image && (
+          <FadeIn delay={80}>
+            <div style={{
+              width: "100%", maxWidth: 560, marginTop: 16,
+              background: "rgba(255,255,255,0.55)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.7)",
+              borderRadius: 20,
+              padding: 24,
+              boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",
+            }}>
+              <ContextForm onReady={fd => onFormReady(image, fd)} t={t} projectCtx={projectCtx} />
+            </div>
+          </FadeIn>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [dark, setDark] = useState(false);
+  const t = dark ? DARK : LIGHT;
+
+  const [collapsed, setCollapsed] = useState(false);
+  const [projects, setProjects] = useState<Project[]>(() => load("seer_projects", []));
+  const [critiques, setCritiques] = useState<Critique[]>(() => load("seer_critiques", []));
+  const [activeCritiqueId, setActiveCritiqueId] = useState<string | null>(null);
+  const [activeVersionIdx, setActiveVersionIdx] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<"landing" | "results" | "newProject" | "newCritique">("landing");
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
+
+  const [shards, setShards] = useState<number>(() => load("seer_shards", 0));
+  const [badgeBouncing, setBadgeBouncing] = useState(false);
+  const [shardTravelCount, setShardTravelCount] = useState(0);
+  const [unlockOverlay, setUnlockOverlay] = useState<typeof LEVELS[0] | null>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { persist("seer_projects", projects); }, [projects]);
+  useEffect(() => { persist("seer_critiques", critiques); }, [critiques]);
+  useEffect(() => { persist("seer_shards", shards); }, [shards]);
+
+  const addShards = useCallback((n: number) => {
+    setShards(prev => {
+      const next = Math.round((prev + n) * 10) / 10;
+      const prevLvl = getLevel(prev);
+      const nextLvl = getLevel(next);
+      if (nextLvl > prevLvl && nextLvl >= 0) setTimeout(() => setUnlockOverlay(LEVELS[nextLvl]), 1300);
+      return next;
+    });
+    setShardTravelCount(Math.ceil(n));
+    setTimeout(() => { setShardTravelCount(0); setBadgeBouncing(true); setTimeout(() => setBadgeBouncing(false), 600); }, 1000);
+  }, []);
+
+  const activeCritique = critiques.find(c => c.id === activeCritiqueId) || null;
+  const projectCtx = pendingProjectId ? projects.find(p => p.id === pendingProjectId) : undefined;
+
+  const goHome = () => { setActiveCritiqueId(null); setView("landing"); setPendingProjectId(null); };
+
+  const handleSelectCritique = (id: string) => {
+    const c = critiques.find(x => x.id === id);
+    setActiveCritiqueId(id);
+    setActiveVersionIdx(c ? c.versions.length - 1 : 0);
+    setView("results");
+  };
+
+  const handleNewCritique = (projectId?: string) => {
+    setPendingProjectId(projectId || null);
+    setActiveCritiqueId(null);
+    setView("newCritique");
+  };
+
+  const handleFormReady = (image: string, fd: FormData) => {
+    setLoading(true);
+    setTimeout(() => {
+      const version: CritiqueVersion = { id: uid(), image, results: MOCK_RESULTS, date: dateStr() };
+      const critique: Critique = { id: uid(), name: fd.productType || "Untitled critique", projectId: pendingProjectId, versions: [version], formData: fd };
+      setCritiques(prev => [...prev, critique]);
+      setActiveCritiqueId(critique.id);
+      setActiveVersionIdx(0);
+      setLoading(false);
+      setView("results");
+      setPendingProjectId(null);
+      addShards(MOCK_RESULTS.overall_score);
+    }, 3500);
+  };
+
+  const handleNewVersion = (src: string) => {
+    if (!activeCritiqueId) return;
+    const existing = critiques.find(x => x.id === activeCritiqueId);
+    if (!existing) return;
+    const newVer: CritiqueVersion = { id: uid(), image: src, results: MOCK_RESULTS, date: dateStr() };
+    setCritiques(prev => prev.map(c => c.id === activeCritiqueId ? { ...c, versions: [...c.versions, newVer] } : c));
+    setActiveVersionIdx(existing.versions.length);
+    const prev = existing.versions[existing.versions.length - 1].results.overall_score;
+    const delta = Math.max(0, MOCK_RESULTS.overall_score - prev);
+    if (delta > 0) addShards(delta);
+  };
+
+  const handleSaveProject = (p: Project, image?: string) => {
+    setProjects(prev => [...prev, p]);
+    if (image) {
+      setLoading(true);
+      setTimeout(() => {
+        const version: CritiqueVersion = { id: uid(), image, results: MOCK_RESULTS, date: dateStr() };
+        const critique: Critique = { id: uid(), name: p.name, projectId: p.id, versions: [version], formData: { productType: p.productType, primaryUsers: p.primaryUsers, constraints: p.constraints, criteria: CRITERIA_OPTIONS.filter(c => c.default).map(c => c.label) } };
+        setCritiques(prev => [...prev, critique]);
+        setActiveCritiqueId(critique.id);
+        setActiveVersionIdx(0);
+        setLoading(false);
+        setView("results");
+        setPendingProjectId(null);
+        addShards(MOCK_RESULTS.overall_score);
+      }, 3500);
+    } else {
+      goHome();
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: t.bg }}>
+      <style>{GLOBAL_CSS}</style>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Unicase:wght@400;500;600&family=Lato:wght@400;700&family=Gasoek+One&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+
+      {unlockOverlay && <LevelUnlockOverlay level={unlockOverlay} onDone={() => setUnlockOverlay(null)} />}
+      {shardTravelCount > 0 && <ShardTravel count={shardTravelCount} onDone={() => setShardTravelCount(0)} badgeRef={badgeRef} />}
+
+      <LeftPanel
+        t={t} collapsed={collapsed} onToggleCollapse={() => setCollapsed(v => !v)}
+        projects={projects} critiques={critiques}
+        activeCritiqueId={activeCritiqueId}
+        onSelectCritique={handleSelectCritique}
+        onNewCritique={handleNewCritique}
+        onNewProject={() => setView("newProject")}
+        onGoHome={goHome}
+        onMoveCritique={(cId, pId) => setCritiques(prev => prev.map(c => c.id === cId ? { ...c, projectId: pId } : c))}
+        onRenameCritique={(cId, name) => setCritiques(prev => prev.map(c => c.id === cId ? { ...c, name } : c))}
+        onDeleteCritique={cId => { setCritiques(prev => prev.filter(c => c.id !== cId)); if (activeCritiqueId === cId) goHome(); }}
+        onDeleteProject={pId => { setProjects(prev => prev.filter(p => p.id !== pId)); setCritiques(prev => prev.map(c => c.projectId === pId ? { ...c, projectId: null } : c)); }}
+      />
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {!loading && (
+          <TopNav
+            t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
+            shards={shards} badgeRef={badgeRef} badgeBouncing={badgeBouncing}
+            view={view} critique={activeCritique} projects={projects}
+            activeVersionIdx={activeVersionIdx}
+            onVersionChange={setActiveVersionIdx}
+            onUploadNewVersion={handleNewVersion}
+            onGoHome={goHome}
+          />
+        )}
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {loading ? (
+            <LoadingScreen t={t} />
+          ) : view === "newProject" ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "48px 32px", overflowY: "auto" }}>
+              <NewProjectFlow t={t} onSave={handleSaveProject} onCancel={goHome} />
+            </div>
+          ) : view === "results" && activeCritique ? (
+            <ResultsScreen critique={activeCritique} activeVersionIdx={activeVersionIdx} onVersionChange={setActiveVersionIdx} onNewVersion={handleNewVersion} t={t} onShardsEarned={addShards} />
+          ) : (
+            <LandingArea t={t} projectCtx={projectCtx} onFormReady={handleFormReady} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
