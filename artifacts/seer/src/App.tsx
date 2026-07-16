@@ -430,7 +430,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
                 <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: F.body, lineHeight: 1.6 }}>
                   Create a project to organise your critiques and give Seer shared context across every read.
                 </p>
-                <button onClick={onNewProject} style={{ padding: "8px 16px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 13, fontFamily: F.serif, cursor: "pointer", alignSelf: "flex-start" }}>
+                <button onClick={onNewProject} style={{ padding: "8px 16px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 13, fontFamily: F.body, cursor: "pointer", alignSelf: "flex-start" }}>
                   Create project
                 </button>
               </div>
@@ -476,7 +476,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
                 <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: F.body, lineHeight: 1.6 }}>No critiques yet. Upload a screen to start getting feedback under this project.</p>
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleProjectFileChange} />
                 <button onClick={() => fileRef.current?.click()}
-                  style={{ padding: "8px 18px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 13, fontFamily: F.serif, cursor: "pointer" }}>
+                  style={{ padding: "8px 18px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 13, fontFamily: F.body, cursor: "pointer" }}>
                   Upload first screen
                 </button>
               </div>
@@ -553,11 +553,12 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
   onGoHome: () => void;
 }) {
   const isResults = view === "results" && critique;
+  const isLanding = view === "landing";
   const fileRef = useRef<HTMLInputElement>(null);
   const projectName = critique?.projectId ? projects.find(p => p.id === critique.projectId)?.name : null;
 
   return (
-    <div style={{ height: t.navH, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", background: t.bgCard, flexShrink: 0, boxSizing: "border-box", padding: "0 16px", position: "relative" }}>
+    <div style={{ height: t.navH, borderBottom: isLanding ? "none" : `1px solid ${t.border}`, display: "flex", alignItems: "center", background: isLanding ? "transparent" : t.bgCard, flexShrink: 0, boxSizing: "border-box", padding: "0 16px", position: "relative" }}>
       <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
         const f = e.target.files?.[0]; if (!f) return;
         const r = new FileReader(); r.onload = ev => onUploadNewVersion(ev.target?.result as string); r.readAsDataURL(f);
@@ -586,7 +587,7 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
         {isResults && <VersionButton versions={critique.versions} activeIdx={activeVersionIdx} onChange={onVersionChange} onUploadNew={() => fileRef.current?.click()} t={t} />}
         {!isResults && (
-          <button onClick={onToggleDark} style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "4px 12px", cursor: "pointer", color: t.textMuted, fontSize: 12, fontFamily: F.body }}>
+          <button onClick={onToggleDark} style={{ background: isLanding ? t.bgHover : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "4px 12px", cursor: "pointer", color: t.textMuted, fontSize: 12, fontFamily: F.body }}>
             {dark ? "☀ Light" : "◐ Dark"}
           </button>
         )}
@@ -661,7 +662,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
           </div>
           <p style={{ margin: 0, fontSize: 12, color: glassTextMuted, fontFamily: F.body }}>Paste your frame link — make sure it's set to "anyone with link can view" in Figma's share settings.</p>
           <button disabled={!figmaUrl.includes("figma.com")}
-            style={{ padding: "10px 20px", background: figmaUrl.includes("figma.com") ? t.btnPrimary : t.bgHover, color: figmaUrl.includes("figma.com") ? t.btnPrimaryText : t.textMuted, border: "none", borderRadius: 100, fontSize: 13, cursor: figmaUrl.includes("figma.com") ? "pointer" : "not-allowed", fontFamily: F.serif }}>
+            style={{ padding: "10px 20px", background: figmaUrl.includes("figma.com") ? t.btnPrimary : t.bgHover, color: figmaUrl.includes("figma.com") ? t.btnPrimaryText : t.textMuted, border: "none", borderRadius: 100, fontSize: 13, cursor: figmaUrl.includes("figma.com") ? "pointer" : "not-allowed", fontFamily: F.body }}>
             Import frame
           </button>
         </div>
@@ -750,7 +751,7 @@ function ContextForm({ onReady, t, projectCtx, prefill }: { onReady: (d: FormDat
             </div>
             <button disabled={selected.length === 0}
               onClick={() => onReady({ productType: projectCtx?.productType || productType, primaryUsers: users || projectCtx?.primaryUsers || "", constraints: [projectCtx?.constraints, constraints].filter(Boolean).join(". "), criteria: selected })}
-              style={{ marginTop: 8, padding: "14px 48px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 17, fontFamily: F.serif, fontWeight: 400, cursor: selected.length === 0 ? "not-allowed" : "pointer", opacity: selected.length === 0 ? 0.4 : 1, boxShadow: `0 4px 20px ${t.brand}44`, alignSelf: "center", letterSpacing: "0.01em" }}>
+              style={{ marginTop: 8, padding: "14px 48px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 17, fontFamily: F.body, fontWeight: 400, cursor: selected.length === 0 ? "not-allowed" : "pointer", opacity: selected.length === 0 ? 0.4 : 1, boxShadow: `0 4px 20px ${t.brand}44`, alignSelf: "center", letterSpacing: "0.01em" }}>
               Get the Reading
             </button>
           </div>
@@ -847,7 +848,7 @@ function NewProjectFlow({ t, onSave, onCancel, prefill }: { t: typeof LIGHT; onS
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={onCancel} style={{ padding: "10px 22px", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 100, fontSize: 14, cursor: "pointer", color: t.textSec, fontFamily: F.body }}>Cancel</button>
                 <button onClick={() => onSave({ id: prefill.id, name, productType: productType || "Web App", primaryUsers: users, constraints })}
-                  style={{ padding: "10px 28px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.serif, cursor: "pointer", boxShadow: `0 4px 20px ${t.brand}44` }}>
+                  style={{ padding: "10px 28px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.body, cursor: "pointer", boxShadow: `0 4px 20px ${t.brand}44` }}>
                   Save changes
                 </button>
               </div>
@@ -879,7 +880,7 @@ function NewProjectFlow({ t, onSave, onCancel, prefill }: { t: typeof LIGHT; onS
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
               <button onClick={onCancel} style={{ padding: "10px 22px", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 100, fontSize: 14, cursor: "pointer", color: t.textSec, fontFamily: F.body }}>Cancel</button>
               <button onClick={() => onSave({ id: uid(), name, productType: productType || "Web App", primaryUsers: users, constraints }, firstImage || undefined)}
-                style={{ padding: "10px 28px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.serif, cursor: "pointer", boxShadow: `0 4px 20px ${t.brand}44` }}>
+                style={{ padding: "10px 28px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.body, cursor: "pointer", boxShadow: `0 4px 20px ${t.brand}44` }}>
                 {firstImage ? "Save and get reading" : "Save project"}
               </button>
             </div>
@@ -1099,7 +1100,7 @@ function ResultsScreen({ critique, activeVersionIdx, onVersionChange, onNewVersi
             <span key={l} style={{ color: t.textSec, fontSize: 13, display: "flex", alignItems: "center", gap: 5, fontFamily: F.body }}><span style={{ color: c }}>⬤</span>{n} {l}</span>
           ))}
         </div>
-        <p style={{ color: t.textAcc, fontSize: 14, fontStyle: "italic", lineHeight: 1.7, margin: "16px 0 20px", fontFamily: F.serif }}>{version.results.overall_reading}</p>
+        <p style={{ color: t.textAcc, fontSize: 14, fontStyle: "italic", lineHeight: 1.7, margin: "16px 0 20px", fontFamily: F.body }}>{version.results.overall_reading}</p>
         <div style={{ height: 1, background: t.border, marginBottom: 20 }} />
         <ImageSelector image={version.image} t={t} onCritiqueElement={handleCritiqueElement} onCloseElement={handleCloseElementMode} onRegisterClear={fn => { clearSelectionRef.current = fn; }} />
         {shardAnim && <div style={{ position: "fixed", bottom: 80, left: "30%", fontSize: 24, animation: "shardFloat 1s ease forwards", pointerEvents: "none", zIndex: 100 }}>+0.5 ✦</div>}
