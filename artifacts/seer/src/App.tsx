@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import heroBgImage from "@assets/abstract-pastel-pink-white-gradient-background_(1)_1779129003439.jpg";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Severity = "critical" | "minor" | "passed";
@@ -612,6 +613,10 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
   const tabActiveBg = glass ? "rgba(255,255,255,0.75)" : t.bgCard;
   const tabBg = glass ? "rgba(255,255,255,0.25)" : t.bgHover;
   const dropBg = drag ? (glass ? "rgba(196,160,232,0.15)" : t.bgHover) : cardBg;
+  // The glass card is always a light frosted surface regardless of theme,
+  // so its text must stay dark for contrast even in dark mode.
+  const glassText = glass ? "#2d1060" : t.text;
+  const glassTextMuted = glass ? "#6b4f96" : t.textMuted;
 
   return (
     <div style={{ width: "100%" }}>
@@ -619,7 +624,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
         <div style={{ display: "flex", gap: 0, marginBottom: 12, background: tabBg, borderRadius: 10, padding: 3, width: "100%" }}>
           {(["screenshot", "figma"] as const).map(tab_ => (
             <button key={tab_} onClick={() => setTab(tab_)}
-              style={{ flex: 1, padding: "6px 16px", borderRadius: 8, border: "none", background: tab === tab_ ? tabActiveBg : "transparent", color: tab === tab_ ? t.text : t.textMuted, fontSize: 13, cursor: "pointer", fontFamily: F.body, fontWeight: tab === tab_ ? 600 : 400, transition: "all 0.15s" }}>
+              style={{ flex: 1, padding: "6px 16px", borderRadius: 8, border: "none", background: tab === tab_ ? tabActiveBg : "transparent", color: tab === tab_ ? glassText : glassTextMuted, fontSize: 13, cursor: "pointer", fontFamily: F.body, fontWeight: tab === tab_ ? 600 : 400, transition: "all 0.15s" }}>
               {tab_ === "screenshot" ? "Screenshot" : "Figma link"}
             </button>
           ))}
@@ -640,8 +645,8 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
           ) : (
             <div style={{ textAlign: "center", padding: 32 }}>
               <div style={{ fontSize: 28, color: t.brand, marginBottom: 10 }}>↑</div>
-              <p style={{ color: t.text, fontSize: 16, margin: "0 0 6px", fontFamily: F.body }}>Drop your screenshot here</p>
-              <p style={{ color: t.textMuted, fontSize: 13, margin: 0, fontFamily: F.body }}>PNG or JPG</p>
+              <p style={{ color: glassText, fontSize: 16, margin: "0 0 6px", fontFamily: F.body }}>Drop your screenshot here</p>
+              <p style={{ color: glassTextMuted, fontSize: 13, margin: 0, fontFamily: F.body }}>PNG or JPG</p>
             </div>
           )}
           <input id="seer-fi" type="file" accept="image/*" style={{ display: "none" }} onChange={e => process(e.target.files?.[0])} />
@@ -654,7 +659,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
             <button onClick={() => navigator.clipboard.readText().then(setFigmaUrl)}
               style={{ padding: "10px 16px", background: t.bgHover, border: `1px solid ${t.border}`, borderRadius: 8, color: t.textSec, fontSize: 13, cursor: "pointer", fontFamily: F.body, whiteSpace: "nowrap" }}>Paste</button>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: F.body }}>Paste your frame link — make sure it's set to "anyone with link can view" in Figma's share settings.</p>
+          <p style={{ margin: 0, fontSize: 12, color: glassTextMuted, fontFamily: F.body }}>Paste your frame link — make sure it's set to "anyone with link can view" in Figma's share settings.</p>
           <button disabled={!figmaUrl.includes("figma.com")}
             style={{ padding: "10px 20px", background: figmaUrl.includes("figma.com") ? t.btnPrimary : t.bgHover, color: figmaUrl.includes("figma.com") ? t.btnPrimaryText : t.textMuted, border: "none", borderRadius: 100, fontSize: 13, cursor: figmaUrl.includes("figma.com") ? "pointer" : "not-allowed", fontFamily: F.serif }}>
             Import frame
@@ -1185,11 +1190,15 @@ const GRAIN_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='2
 
 function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectCtx?: Project; onFormReady: (img: string, fd: FormData) => void }) {
   const [image, setImage] = useState<string | null>(null);
+  const isDark = t === DARK;
 
   return (
     <div style={{ flex: 1, overflowY: "auto", position: "relative", isolation: "isolate" }}>
       {/* Background image */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 0, minHeight: "100%", backgroundImage: `url('/attached_assets/abstract-pastel-pink-white-gradient-background__1_.jpg')`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "local" }} />
+      <div style={{ position: "absolute", inset: 0, zIndex: 0, minHeight: "100%", backgroundImage: `url(${heroBgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "local" }} />
+
+      {/* Dark-mode darkening overlay so light hero art still meets contrast */}
+      {isDark && <div style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", background: "rgba(10,4,20,0.72)" }} />}
 
       {/* Grain overlay */}
       <div style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(GRAIN_SVG)}")`, backgroundRepeat: "repeat", opacity: 0.6 }} />
@@ -1212,10 +1221,10 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "auto" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640 }}>
-          <h1 style={{ fontFamily: F.serif, fontSize: "clamp(32px, 4vw, 96px)", fontWeight: 400, color: "#2d1060", margin: "0 0 12px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontFamily: F.serif, fontSize: "clamp(32px, 4vw, 96px)", fontWeight: 400, color: t.text, margin: "0 0 12px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
             Upload your design.<br />Get real <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
-          <p style={{ fontFamily: F.body, fontSize: 16, color: "#4a2878", margin: 0, letterSpacing: 0.2 }}>
+          <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0.2 }}>
             Structured, heuristic-based feedback — in seconds.
           </p>
         </div>
