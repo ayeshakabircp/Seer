@@ -558,7 +558,7 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
   const projectName = critique?.projectId ? projects.find(p => p.id === critique.projectId)?.name : null;
 
   return (
-    <div style={{ height: t.navH, borderBottom: isLanding ? "none" : `1px solid ${t.border}`, display: "flex", alignItems: "center", background: isLanding ? "transparent" : t.bgCard, flexShrink: 0, boxSizing: "border-box", padding: "0 16px", position: "relative" }}>
+    <div style={{ height: t.navH, borderBottom: isLanding ? "none" : `1px solid ${t.border}`, display: "flex", alignItems: "center", background: isLanding ? "transparent" : t.bgCard, flexShrink: 0, boxSizing: "border-box", padding: "0 16px", position: isLanding ? "absolute" : "relative", top: 0, left: 0, right: 0, zIndex: isLanding ? 50 : undefined }}>
       <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
         const f = e.target.files?.[0]; if (!f) return;
         const r = new FileReader(); r.onload = ev => onUploadNewVersion(ev.target?.result as string); r.readAsDataURL(f);
@@ -1399,7 +1399,7 @@ export default function App() {
         onEditCritique={c => setEditingCritique(c)}
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {!loading && (
           <TopNav
             t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
