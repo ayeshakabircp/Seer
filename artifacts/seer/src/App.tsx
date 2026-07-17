@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import heroBgImage from "@assets/abstract-pastel-pink-white-gradient-background_(1)_1779129003439.jpg";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Severity = "critical" | "minor" | "passed";
@@ -120,10 +119,6 @@ const GLOBAL_CSS = `
   @keyframes shardFloat { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-60px);opacity:0} }
   @keyframes overlayIn { 0%{opacity:0} 100%{opacity:1} }
   @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-  @keyframes blobDrift1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-20px) scale(1.05)} 66%{transform:translate(-20px,15px) scale(0.97)} }
-  @keyframes blobDrift2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-25px,30px) scale(1.06)} 70%{transform:translate(20px,-10px) scale(0.95)} }
-  @keyframes blobDrift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(15px,25px) scale(1.04)} }
-  @keyframes blobDrift4 { 0%,100%{transform:translate(0,0) scale(1)} 30%{transform:translate(-30px,-15px) scale(1.08)} 80%{transform:translate(10px,20px) scale(0.96)} }
 `;
 
 // ─── Level Unlock Overlay ─────────────────────────────────────────────────────
@@ -1167,27 +1162,24 @@ function LoadingScreen({ t }: { t: typeof LIGHT }) {
 }
 
 // ─── Landing ──────────────────────────────────────────────────────────────────
-const SPARKLES = [
-  { top: "9%",  left: "5%",   size: 42 },
-  { top: "17%", left: "87%",  size: 24 },
-  { top: "52%", left: "3%",   size: 18 },
-  { top: "70%", left: "90%",  size: 34 },
-  { top: "36%", left: "93%",  size: 16 },
-  { top: "83%", left: "13%",  size: 28 },
-];
+function LilacMistBackground({ dark }: { dark: boolean }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-const BLOBS = [
-  { top: "-10%", left: "-8%",  size: 520, color: "rgba(210,170,255,0.38)", anim: "blobDrift1", dur: "12s" },
-  { top: "55%",  left: "70%",  size: 440, color: "rgba(255,200,220,0.32)", anim: "blobDrift2", dur: "15s" },
-  { top: "30%",  left: "40%",  size: 360, color: "rgba(230,210,255,0.28)", anim: "blobDrift3", dur: "10s" },
-  { top: "75%",  left: "-5%",  size: 400, color: "rgba(255,220,235,0.30)", anim: "blobDrift4", dur: "13s" },
-  // f8fbdc accent blobs
-  { top: "20%",  left: "55%",  size: 500, color: "rgba(248,251,220,0.45)", anim: "blobDrift2", dur: "17s" },
-  { top: "60%",  left: "15%",  size: 320, color: "rgba(248,251,220,0.35)", anim: "blobDrift3", dur: "11s" },
-];
+  useEffect(() => {
+    const win = iframeRef.current?.contentWindow as (Window & { MIST_DARK?: boolean }) | undefined | null;
+    if (win) win.MIST_DARK = dark;
+  }, [dark]);
 
-// Grain SVG filter for bg
-const GRAIN_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='grain'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feBlend in='SourceGraphic' mode='multiply'/></filter><rect width='200' height='200' filter='url(#grain)' opacity='0.035'/></svg>`;
+  return (
+    <iframe
+      ref={iframeRef}
+      title="Background"
+      src={`${import.meta.env.BASE_URL}lilac-mist-bg.html`}
+      onLoad={e => { (e.currentTarget.contentWindow as Window & { MIST_DARK?: boolean }).MIST_DARK = dark; }}
+      style={{ position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", border: "none" }}
+    />
+  );
+}
 
 function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectCtx?: Project; onFormReady: (img: string, fd: FormData) => void }) {
   const [image, setImage] = useState<string | null>(null);
@@ -1195,24 +1187,7 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
 
   return (
     <div style={{ flex: 1, overflowY: "auto", position: "relative", isolation: "isolate" }}>
-      {/* Background image */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 0, minHeight: "100%", backgroundImage: `url(${heroBgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "local" }} />
-
-      {/* Dark-mode darkening overlay so light hero art still meets contrast */}
-      {isDark && <div style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", background: "rgba(10,4,20,0.72)" }} />}
-
-      {/* Grain overlay */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(GRAIN_SVG)}")`, backgroundRepeat: "repeat", opacity: 0.6 }} />
-
-      {/* Glowing blobs */}
-      {BLOBS.map((b, i) => (
-        <div key={i} style={{ position: "absolute", top: b.top, left: b.left, zIndex: 2, pointerEvents: "none", width: b.size, height: b.size, borderRadius: "50%", background: `radial-gradient(circle, ${b.color} 0%, transparent 70%)`, filter: "blur(50px)", animation: `${b.anim} ${b.dur} ease-in-out infinite`, mixBlendMode: "multiply" }} />
-      ))}
-
-      {/* Static ✦ sparkles */}
-      {SPARKLES.map((s, i) => (
-        <div key={i} style={{ position: "absolute", top: s.top, left: s.left, zIndex: 3, pointerEvents: "none", fontSize: s.size, color: "#b890e0", lineHeight: 1, userSelect: "none", opacity: 0.6 }}>✦</div>
-      ))}
+      <LilacMistBackground dark={isDark} />
 
       {/* Ghost "Seer" */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1, overflow: "hidden", pointerEvents: "none", display: "flex", alignItems: "flex-end" }}>
