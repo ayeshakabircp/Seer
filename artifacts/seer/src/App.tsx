@@ -1189,14 +1189,9 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
     <div style={{ flex: 1, overflowY: "auto", position: "relative", isolation: "isolate" }}>
       <LilacMistBackground dark={isDark} />
 
-      {/* Ghost "Seer" */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1, overflow: "hidden", pointerEvents: "none", display: "flex", alignItems: "flex-end" }}>
-        <p style={{ fontFamily: F.display, fontSize: "23.5vw", color: "#b890e0", margin: 0, padding: 0, width: "100%", textAlign: "center", opacity: 0.2, userSelect: "none", lineHeight: 0.82, letterSpacing: "-0.01em" }}>Seer</p>
-      </div>
-
       {/* Content */}
-      <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640 }}>
+      <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "none" }}>
+        <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640, pointerEvents: "auto" }}>
           <h1 style={{ fontFamily: F.serif, fontSize: "clamp(32px, 4vw, 96px)", fontWeight: 400, color: t.text, margin: "80px 0 12px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
             Upload your design.<br />Get real <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
@@ -1205,13 +1200,13 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
           </p>
         </div>
 
-        <div style={{ width: "100%", maxWidth: 560, background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10 }}>
+        <div style={{ width: "100%", maxWidth: 560, background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
           <UploadZone image={image} onFile={setImage} onReset={() => setImage(null)} t={t} glass />
         </div>
 
         {image && (
           <FadeIn delay={80}>
-            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10 }}>
+            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
               <ContextForm onReady={fd => onFormReady(image, fd)} t={t} projectCtx={projectCtx} />
             </div>
           </FadeIn>
