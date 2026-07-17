@@ -1197,7 +1197,7 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "auto" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640 }}>
-          <h1 style={{ fontFamily: F.serif, fontSize: "clamp(32px, 4vw, 96px)", fontWeight: 400, color: t.text, margin: "80 0 12px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontFamily: F.serif, fontSize: "clamp(32px, 4vw, 96px)", fontWeight: 400, color: t.text, margin: "80px 0 12px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
             Upload your design.<br />Get real <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
           <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0.2 }}>
