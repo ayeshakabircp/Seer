@@ -25,6 +25,7 @@ var FRAG=
 "precision mediump float;\n"+
 "uniform vec2 uRes;uniform float uT;uniform vec4 uPts["+NPTS+"];\n"+
 "uniform float uSize,uSoft,uMist,uGlow,uDark,uSpark,uGrain;\n"+
+"uniform vec3 uMistDark,uRimDark;\n"+
 "float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n"+
 "float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\n"+
 " return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}\n"+
@@ -93,9 +94,9 @@ var FRAG=
 " float m=clamp(wisp*uMist,0.,1.);\n"+
 " m*=.6+.4*cl2;\n"+
 " float rim=smoothstep(.005,.08,m)*(1.-smoothstep(.08,.35,m))*(.4+.6*cl);\n"+
-" vec3 rimC=mix(CP,vec3(.788,.635,.910),uDark);\n"+
+" vec3 rimC=mix(CP,uRimDark,uDark);\n"+
 " col=mix(col,rimC,rim*uGlow);\n"+
-" vec3 mistC=mix(CW,vec3(.831,.722,1.),uDark);\n"+
+" vec3 mistC=mix(CW,uMistDark,uDark);\n"+
 " col=mix(col,mistC,pow(smoothstep(.04,1.,m),1.3)*mix(.5,.4,uDark));\n"+
 // sparkles — #CEB2EA in both modes
 " if(uSpark>0.){vec3 sC=vec3(.808,.698,.918);\n"+
@@ -117,7 +118,17 @@ gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0)
 var uRes=gl.getUniformLocation(prog,'uRes'),uT=gl.getUniformLocation(prog,'uT'),uPts=gl.getUniformLocation(prog,'uPts');
 var uSize=gl.getUniformLocation(prog,'uSize'),uSoft=gl.getUniformLocation(prog,'uSoft'),uMist=gl.getUniformLocation(prog,'uMist'),uGlow=gl.getUniformLocation(prog,'uGlow');
 var uDark=gl.getUniformLocation(prog,'uDark'),uSpark=gl.getUniformLocation(prog,'uSpark'),uGrain=gl.getUniformLocation(prog,'uGrain');
+var uMistDark=gl.getUniformLocation(prog,'uMistDark'),uRimDark=gl.getUniformLocation(prog,'uRimDark');
 var darkNow=0; // eased so site-driven theme switches fade smoothly
+
+// #rrggbb -> [0..1,0..1,0..1], falls back to def (already 0..1) on bad input
+function hexToRgb(hex,def){
+  if(typeof hex!=='string')return def;
+  var m=/^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if(!m)return def;
+  var n=parseInt(m[1],16);
+  return [((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255];
+}
 
 // render at reduced resolution — gradients are soft, saves battery
 var MAXW=1280;
@@ -172,6 +183,10 @@ function frame(){
   gl.uniform1f(uDark,darkNow);
   gl.uniform1f(uSpark,(T.sparkles==null||T.sparkles)?(T.sparkleAmount!=null?T.sparkleAmount:0.5):0);
   gl.uniform1f(uGrain,T.grain!=null?T.grain:0.05);
+  var mistDark=hexToRgb(T.mistDarkColor,[0.831,0.722,1.0]);
+  var rimDark=hexToRgb(T.rimDarkColor,[0.788,0.635,0.910]);
+  gl.uniform3f(uMistDark,mistDark[0],mistDark[1],mistDark[2]);
+  gl.uniform3f(uRimDark,rimDark[0],rimDark[1],rimDark[2]);
   gl.uniform4fv(uPts,ptData);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
@@ -180,7 +195,10 @@ frame();
 </script>
 <script>
 // Baked settings from Tweaks. Dark mode: set window.MIST_DARK = true/false from your site.
-window.TWEAKS = {"highlightSize":0.55,"mistSoftness":6,"mistAmount":1.5,"pinkGlow":0.6,"sparkles":true,"sparkleAmount":1,"grain":0.01,"darkMode":false};
+// mistDarkColor / rimDarkColor: cursor-trail colors used only when dark mode
+// is active (hex strings, e.g. "#d4b8ff"). Live-tunable from the console —
+// no rebuild needed, changes apply on the next animation frame.
+window.TWEAKS = {"highlightSize":0.55,"mistSoftness":6,"mistAmount":1.5,"pinkGlow":0.6,"sparkles":true,"sparkleAmount":1,"grain":0.01,"darkMode":false,"mistDarkColor":"#d4b8ff","rimDarkColor":"#c9a2e8"};
 </script>
 
 

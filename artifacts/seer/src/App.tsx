@@ -24,12 +24,12 @@ const F = {
 // critical  #b01c1c   6.4:1 ✓   minor    #8a4800   6.8:1 ✓
 // passed    #005c2e   7.1:1 ✓
 const LIGHT = {
-  bg: "#f8f5ff", bgCard: "#ffffff", bgHover: "#ede8ff", bgOverlay: "rgba(26,10,46,0.4)",
-  brand: "#7b2ff7", border: "#ddd5f5", shadow: "0 2px 16px rgba(123,47,247,0.10)",
+  bg: "#f8f5ff", bgCard: "#f5e9f7", bgHover: "#e1d8ff", bgOverlay: "rgba(26,10,46,0.4)",
+  brand: "#3a0c77", border: "#ddd5f5", shadow: "0 2px 16px rgba(58,12,119,0.10)",
   text: "#1a0a2e", textSec: "#3d2e62", textMuted: "#5e4d84", textAcc: "#4c18b8",
   critical: "#b01c1c", minor: "#8a4800", passed: "#005c2e", downloadBg: "#ede8ff",
   // primary button: brand bg, white text — 5.9:1 ✓
-  btnPrimary: "#7b2ff7", btnPrimaryText: "#ffffff",
+  btnPrimary: "#3a0c77", btnPrimaryText: "#ffffff",
   navH: 48,
 };
 
@@ -39,11 +39,11 @@ const LIGHT = {
 // critical  #ff8080   6.8:1 ✓   minor    #ffc044   9.2:1 ✓
 // passed    #4ddd88   8.7:1 ✓
 const DARK = {
-  bg: "#1a0a2e", bgCard: "#160824", bgHover: "#2a0f4e", bgOverlay: "rgba(0,0,0,0.55)",
-  brand: "#9b4fff", border: "#3d1f6e", shadow: "0 2px 16px rgba(0,0,0,0.35)",
-  text: "#ffffff", textSec: "#e0d8f8", textMuted: "#c0b0e0", textAcc: "#d4b8ff",
+  bg: "#1a0a2e", bgCard: "#1f132d", bgHover: "#2a0f4e", bgOverlay: "rgba(0,0,0,0.55)",
+  brand: "#9b4fff", border: "#3c1f64", shadow: "0 2px 16px rgba(0,0,0,0.35)",
+  text: "#f7edff", textSec: "#e0d8f8", textMuted: "#c0b0e0", textAcc: "#d4b8ff",
   critical: "#ff8080", minor: "#ffc044", passed: "#4ddd88", downloadBg: "#2a0f4e",
-  btnPrimary: "#9b4fff", btnPrimaryText: "#ffffff",
+  btnPrimary: "#c69aff", btnPrimaryText: "#1f122e",
   navH: 48,
 };
 
@@ -135,7 +135,7 @@ function LevelUnlockOverlay({ level, onDone }: { level: typeof LEVELS[0]; onDone
         <div style={{ fontSize: 96, animation: phase === "grow" ? "popIn 0.6s ease forwards, pulse 1s ease 0.6s infinite" : "flyTo 0.8s ease forwards", "--tx": "-40vw", "--ty": "-45vh" } as React.CSSProperties}>{level.emoji}</div>
         {phase === "grow" && (
           <div style={{ marginTop: 24, animation: "popIn 0.5s ease 0.4s both" }}>
-            <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: F.body }}>Level unlocked</p>
+            <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, letterSpacing: 0, textTransform: "uppercase", margin: "0 0 8px", fontFamily: F.body }}>Level unlocked</p>
             <p style={{ color: "#fff", fontSize: 32, fontFamily: F.serif, margin: 0 }}>{level.title}</p>
           </div>
         )}
@@ -179,7 +179,7 @@ function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: type
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <div ref={badgeRef} onClick={() => setOpen(o => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", background: t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
         <span style={{ fontSize: 16 }}>{level?.emoji || "🕯️"}</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: t.text, fontFamily: F.body }}>{shards}</span>
         <span style={{ fontSize: 11, color: t.brand }}>✦</span>
@@ -189,7 +189,7 @@ function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: type
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
             <span style={{ fontSize: 44 }}>{level?.emoji || "🕯️"}</span>
             <div>
-              <p style={{ margin: 0, fontSize: 11, color: t.textMuted, fontFamily: F.body, letterSpacing: 0.8, textTransform: "uppercase" }}>Current level</p>
+              <p style={{ margin: 0, fontSize: 11, color: t.textMuted, fontFamily: F.body, letterSpacing: 0, textTransform: "uppercase" }}>Current level</p>
               <p style={{ margin: 0, fontSize: 20, color: t.text, fontFamily: F.serif }}>{level?.title || "Unranked"}</p>
               <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: F.body }}>{shards} ✦ collected</p>
             </div>
@@ -417,7 +417,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
         {panelView === "root" ? (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", marginBottom: 4 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 1, textTransform: "uppercase", margin: 0, fontFamily: F.body }}>Projects</p>
+              <p style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 0, textTransform: "uppercase", margin: 0, fontFamily: F.body }}>Projects</p>
               {projects.length > 0 && <PlusBtn onClick={onNewProject} title="New project" t={t} />}
             </div>
             {projects.length === 0 ? (
@@ -425,7 +425,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
                 <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: F.body, lineHeight: 1.6 }}>
                   Create a project to organise your critiques and give Seer shared context across every read.
                 </p>
-                <button onClick={onNewProject} style={{ padding: "8px 16px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 13, fontFamily: F.body, cursor: "pointer", alignSelf: "flex-start" }}>
+                <button onClick={onNewProject} style={{ padding: "8px 16px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.body, cursor: "pointer", alignSelf: "flex-start" }}>
                   Create project
                 </button>
               </div>
@@ -444,7 +444,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
             )}
             <div style={{ height: 1, background: t.border, margin: "8px 12px" }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", marginBottom: 4 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 1, textTransform: "uppercase", margin: 0, fontFamily: F.body }}>Critiques</p>
+              <p style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 0, textTransform: "uppercase", margin: 0, fontFamily: F.body }}>Critiques</p>
               <PlusBtn onClick={onGoHome} title="New critique" t={t} />
             </div>
             {standalone.length === 0
@@ -471,7 +471,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
                 <p style={{ margin: 0, fontSize: 12, color: t.textMuted, fontFamily: F.body, lineHeight: 1.6 }}>No critiques yet. Upload a screen to start getting feedback under this project.</p>
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleProjectFileChange} />
                 <button onClick={() => fileRef.current?.click()}
-                  style={{ padding: "8px 18px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 13, fontFamily: F.body, cursor: "pointer" }}>
+                  style={{ padding: "8px 18px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.body, cursor: "pointer" }}>
                   Upload first screen
                 </button>
               </div>
@@ -582,7 +582,7 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
         {isResults && <VersionButton versions={critique.versions} activeIdx={activeVersionIdx} onChange={onVersionChange} onUploadNew={() => fileRef.current?.click()} t={t} />}
         {!isResults && (
-          <button onClick={onToggleDark} style={{ background: isLanding ? t.bgHover : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "4px 12px", cursor: "pointer", color: t.textMuted, fontSize: 12, fontFamily: F.body }}>
+          <button onClick={onToggleDark} style={{ background: isLanding ? (dark ? t.bgHover : "rgb(248, 246, 255)") : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: t.textMuted, fontSize: 12, fontFamily: F.body }}>
             {dark ? "☀ Light" : "◐ Dark"}
           </button>
         )}
@@ -605,14 +605,15 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
     r.readAsDataURL(file);
   }, [onFile]);
 
-  const cardBg = glass ? "rgba(255,255,255,0.35)" : t.bgCard;
-  const tabActiveBg = glass ? "rgba(255,255,255,0.75)" : t.bgCard;
-  const tabBg = glass ? "rgba(255,255,255,0.25)" : t.bgHover;
-  const dropBg = drag ? (glass ? "rgba(196,160,232,0.15)" : t.bgHover) : cardBg;
-  // The glass card is always a light frosted surface regardless of theme,
-  // so its text must stay dark for contrast even in dark mode.
-  const glassText = glass ? "#2d1060" : t.text;
-  const glassTextMuted = glass ? "#6b4f96" : t.textMuted;
+  const isDark = t === DARK;
+  // In light mode the glass card stays a light frosted surface regardless
+  // of the page theme; in dark mode it switches to the solid dark surface.
+  const cardBg = isDark ? t.bgCard : glass ? "rgba(255,255,255,0.35)" : t.bgCard;
+  const tabActiveBg = isDark ? t.bgCard : glass ? "rgba(255,255,255,0.75)" : t.bgCard;
+  const tabBg = isDark ? t.bgHover : glass ? "rgba(255,255,255,0.25)" : t.bgHover;
+  const dropBg = drag ? (isDark ? t.bgHover : glass ? "rgba(196,160,232,0.15)" : t.bgHover) : cardBg;
+  const glassText = glass && !isDark ? "#2d1060" : t.text;
+  const glassTextMuted = glass && !isDark ? "#6b4f96" : t.textMuted;
 
   return (
     <div style={{ width: "100%" }}>
@@ -627,7 +628,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
         </div>
       )}
       {tab === "screenshot" || image ? (
-        <div style={{ width: "100%", minHeight: 160, border: `2px dashed ${drag ? t.brand : image ? t.brand + "60" : glass ? "rgba(196,160,232,0.5)" : t.border}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: image ? "default" : "pointer", background: dropBg, transition: "all 0.2s", overflow: "hidden", position: "relative" }}
+        <div style={{ width: "100%", minHeight: 160, border: `2px dashed ${drag ? t.brand : image ? t.brand + "60" : glass && !isDark ? "rgba(196,160,232,0.5)" : t.border}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: image ? "default" : "pointer", background: dropBg, transition: "all 0.2s", overflow: "hidden", position: "relative" }}
           onDrop={e => { e.preventDefault(); setDrag(false); process(e.dataTransfer.files[0]); }}
           onDragOver={e => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
@@ -648,7 +649,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
           <input id="seer-fi" type="file" accept="image/*" style={{ display: "none" }} onChange={e => process(e.target.files?.[0])} />
         </div>
       ) : (
-        <div style={{ width: "100%", padding: 20, border: `1px solid ${glass ? "rgba(196,160,232,0.4)" : t.border}`, borderRadius: 14, background: glass ? "rgba(255,255,255,0.3)" : t.bgCard, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ width: "100%", padding: 20, border: `1px solid ${glass && !isDark ? "rgba(196,160,232,0.4)" : t.border}`, borderRadius: 14, background: glass && !isDark ? "rgba(255,255,255,0.3)" : t.bgCard, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <input type="text" placeholder="https://www.figma.com/file/..." value={figmaUrl} onChange={e => setFigmaUrl(e.target.value)}
               style={{ flex: 1, padding: "10px 14px", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 14, outline: "none", fontFamily: F.body }} />
@@ -657,7 +658,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
           </div>
           <p style={{ margin: 0, fontSize: 12, color: glassTextMuted, fontFamily: F.body }}>Paste your frame link — make sure it's set to "anyone with link can view" in Figma's share settings.</p>
           <button disabled={!figmaUrl.includes("figma.com")}
-            style={{ padding: "10px 20px", background: figmaUrl.includes("figma.com") ? t.btnPrimary : t.bgHover, color: figmaUrl.includes("figma.com") ? t.btnPrimaryText : t.textMuted, border: "none", borderRadius: 100, fontSize: 13, cursor: figmaUrl.includes("figma.com") ? "pointer" : "not-allowed", fontFamily: F.body }}>
+            style={{ padding: "10px 20px", background: figmaUrl.includes("figma.com") ? t.btnPrimary : t.bgHover, color: figmaUrl.includes("figma.com") ? t.btnPrimaryText : t.textMuted, border: "none", borderRadius: 100, fontSize: 14, cursor: figmaUrl.includes("figma.com") ? "pointer" : "not-allowed", fontFamily: F.body }}>
             Import frame
           </button>
         </div>
@@ -746,7 +747,7 @@ function ContextForm({ onReady, t, projectCtx, prefill }: { onReady: (d: FormDat
             </div>
             <button disabled={selected.length === 0}
               onClick={() => onReady({ productType: projectCtx?.productType || productType, primaryUsers: users || projectCtx?.primaryUsers || "", constraints: [projectCtx?.constraints, constraints].filter(Boolean).join(". "), criteria: selected })}
-              style={{ marginTop: 8, padding: "14px 48px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 17, fontFamily: F.body, fontWeight: 400, cursor: selected.length === 0 ? "not-allowed" : "pointer", opacity: selected.length === 0 ? 0.4 : 1, boxShadow: `0 4px 20px ${t.brand}44`, alignSelf: "center", letterSpacing: "0.01em" }}>
+              style={{ marginTop: 8, padding: "14px 48px", background: t.btnPrimary, color: t.btnPrimaryText, border: "none", borderRadius: 100, fontSize: 14, fontFamily: F.body, fontWeight: 400, cursor: selected.length === 0 ? "not-allowed" : "pointer", opacity: selected.length === 0 ? 0.4 : 1, boxShadow: `0 4px 20px ${t.brand}44`, alignSelf: "center", letterSpacing: 0 }}>
               Get the Reading
             </button>
           </div>
@@ -939,12 +940,12 @@ function CriteriaCard({ item, onScoreChange, onResolve, t }: { item: CriteriaIte
         <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${t.border}`, display: "flex", flexDirection: "column", gap: 12 }}>
           {[{ label: "OBSERVATION", text: item.observation, italic: false }, { label: "CONSEQUENCE", text: item.consequence, italic: true }, { label: "FIX", text: item.fix, italic: false }].map(({ label, text, italic }) => (
             <div key={label} style={{ paddingTop: 12 }}>
-              <p style={{ color: t.textMuted, fontSize: 10, letterSpacing: 1.5, margin: "0 0 4px", fontFamily: F.body }}>{label}</p>
+              <p style={{ color: t.textMuted, fontSize: 10, letterSpacing: 0, margin: "0 0 4px", fontFamily: F.body }}>{label}</p>
               <p style={{ color: t.textAcc, fontSize: 13, lineHeight: 1.6, margin: 0, fontFamily: F.body, fontStyle: italic ? "italic" : "normal" }}>{text}</p>
             </div>
           ))}
           <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 10 }}>
-            <p style={{ color: t.textMuted, fontSize: 10, letterSpacing: 1.5, margin: "0 0 6px", fontFamily: F.body }}>ADD CONTEXT</p>
+            <p style={{ color: t.textMuted, fontSize: 10, letterSpacing: 0, margin: "0 0 6px", fontFamily: F.body }}>ADD CONTEXT</p>
             {reconsidering ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0" }}>
                 <div style={{ width: 14, height: 14, border: `2px solid ${t.brand}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -1029,7 +1030,7 @@ function ImageSelector({ image, t, onCritiqueElement, onCloseElement, onRegister
       onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}
     >
       <img src={image} alt="Design" style={{ width: "100%", display: "block", borderRadius: 12 }} draggable={false} />
-      {hovering && !dragging && !confirmed && <div style={{ position: "absolute", inset: 0, background: "rgba(123,47,247,0.04)", borderRadius: 12, pointerEvents: "none" }} />}
+      {hovering && !dragging && !confirmed && <div style={{ position: "absolute", inset: 0, background: "rgba(58,12,119,0.04)", borderRadius: 12, pointerEvents: "none" }} />}
       {displayRect && (
         <>
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.38)", pointerEvents: "none", borderRadius: 12 }} />
@@ -1119,7 +1120,7 @@ function ResultsScreen({ critique, activeVersionIdx, onVersionChange, onNewVersi
               ) : elementCritique ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ background: t.bgHover, borderRadius: 10, padding: 14 }}>
-                    <p style={{ margin: "0 0 8px", fontSize: 10, letterSpacing: 1.5, color: t.textMuted, fontFamily: F.body }}>ELEMENT FEEDBACK</p>
+                    <p style={{ margin: "0 0 8px", fontSize: 10, letterSpacing: 0, color: t.textMuted, fontFamily: F.body }}>ELEMENT FEEDBACK</p>
                     <p style={{ margin: 0, fontSize: 13, color: t.textAcc, lineHeight: 1.7, fontFamily: F.body }}>{elementCritique}</p>
                   </div>
                   <button onClick={handleCloseElementMode} style={{ padding: "8px 0", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 100, fontSize: 13, color: t.textSec, cursor: "pointer", fontFamily: F.body }}>← Back to full critique</button>
@@ -1186,16 +1187,16 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
   const isDark = t === DARK;
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", position: "relative", isolation: "isolate" }}>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", position: "relative", isolation: "isolate" }}>
       <LilacMistBackground dark={isDark} />
 
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "none" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640, pointerEvents: "auto" }}>
-          <h1 style={{ fontFamily: F.serif, fontSize: "clamp(32px, 4vw, 96px)", fontWeight: 400, color: t.text, margin: "80px 0 12px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: "rgb(42, 10, 83)", margin: "80px 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
             Upload your design.<br />Get real <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
-          <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0.2 }}>
+          <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0 }}>
             Structured, heuristic-based feedback — in seconds.
           </p>
         </div>
@@ -1369,7 +1370,7 @@ export default function App() {
         onEditCritique={c => setEditingCritique(c)}
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {!loading && (
           <TopNav
             t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
@@ -1381,7 +1382,7 @@ export default function App() {
             onGoHome={goHome}
           />
         )}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {loading ? (
             <LoadingScreen t={t} />
           ) : (view === "newProject" || view === "editProject") ? (
