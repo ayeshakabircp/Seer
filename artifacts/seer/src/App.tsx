@@ -706,7 +706,7 @@ function ContextForm({ onReady, t, projectCtx, prefill }: { onReady: (d: FormDat
               {PRODUCT_TYPES.map(type => {
                 const active = type === "Other" ? other : productType === type && !other;
                 return <button key={type} onClick={() => { setProductType(type); if (type !== "Other") { setOther(false); if (step === 1) setStep(2); } else setOther(true); }}
-                  style={{ padding: "7px 18px", borderRadius: 100, border: `1px solid ${active ? t.brand : t.border}`, background: active ? t.brand : "transparent", color: active ? t.btnPrimaryText : t.textSec, fontSize: 13, cursor: "pointer", fontFamily: F.body }}>{type}</button>;
+                  style={{ padding: "7px 18px", borderRadius: 100, border: `1px solid ${active ? "rgb(58, 12, 119)" : t.border}`, background: active ? "rgb(58, 12, 119)" : "transparent", color: active ? "#ffffff" : t.textSec, fontSize: 13, cursor: "pointer", fontFamily: F.body }}>{type}</button>;
               })}
             </div>
             {other && <input autoFocus type="text" placeholder="Describe your product type" style={inp} onChange={e => { setProductType(e.target.value); if (step === 1 && e.target.value.trim()) setStep(2); }} />}
@@ -817,7 +817,7 @@ function NewProjectFlow({ t, onSave, onCancel, prefill }: { t: typeof LIGHT; onS
               {PRODUCT_TYPES.map(type => {
                 const active = type === "Other" ? other : productType === type && !other;
                 return <button key={type} onClick={() => { setProductType(type); if (type !== "Other") { setOther(false); if (step === 2) setStep(3); } else setOther(true); }}
-                  style={{ padding: "7px 18px", borderRadius: 100, border: `1px solid ${active ? t.brand : t.border}`, background: active ? t.brand : "transparent", color: active ? t.btnPrimaryText : t.textSec, fontSize: 13, cursor: "pointer", fontFamily: F.body }}>{type}</button>;
+                  style={{ padding: "7px 18px", borderRadius: 100, border: `1px solid ${active ? "rgb(58, 12, 119)" : t.border}`, background: active ? "rgb(58, 12, 119)" : "transparent", color: active ? "#ffffff" : t.textSec, fontSize: 13, cursor: "pointer", fontFamily: F.body }}>{type}</button>;
               })}
             </div>
             {other && <input autoFocus type="text" placeholder="Describe the product" style={inp} onChange={e => { setProductType(e.target.value); if (step === 2 && e.target.value.trim()) setStep(3); }} />}
@@ -1187,13 +1187,13 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
   const isDark = t === DARK;
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", position: "relative", isolation: "isolate" }}>
+    <div style={{ flex: 1, minHeight: 0, height: "100%", overflowY: "auto", position: "relative", isolation: "isolate" }}>
       <LilacMistBackground dark={isDark} />
 
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "none" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640, pointerEvents: "auto" }}>
-          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: "rgb(42, 10, 83)", margin: "80px 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "80px 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
             Upload your design.<br />Get real <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
           <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0 }}>
@@ -1201,13 +1201,13 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
           </p>
         </div>
 
-        <div style={{ width: "100%", maxWidth: 560, background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
+        <div style={{ width: "100%", maxWidth: 560, background: isDark ? t.bgCard : "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
           <UploadZone image={image} onFile={setImage} onReset={() => setImage(null)} t={t} glass />
         </div>
 
         {image && (
           <FadeIn delay={80}>
-            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
+            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: isDark ? t.bgCard : "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
               <ContextForm onReady={fd => onFormReady(image, fd)} t={t} projectCtx={projectCtx} />
             </div>
           </FadeIn>
@@ -1370,7 +1370,7 @@ export default function App() {
         onEditCritique={c => setEditingCritique(c)}
       />
 
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+      <div style={{ flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {!loading && (
           <TopNav
             t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
@@ -1382,7 +1382,7 @@ export default function App() {
             onGoHome={goHome}
           />
         )}
-        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, minHeight: 0, height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {loading ? (
             <LoadingScreen t={t} />
           ) : (view === "newProject" || view === "editProject") ? (
