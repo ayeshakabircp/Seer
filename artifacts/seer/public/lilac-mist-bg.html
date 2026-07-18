@@ -156,6 +156,9 @@ function addPt(cx,cy){
 }
 addEventListener('pointermove',function(e){addPt(e.clientX,e.clientY);},{passive:true});
 addEventListener('touchmove',function(e){var t=e.touches[0];if(t)addPt(t.clientX,t.clientY);},{passive:true});
+// Exposed so an embedding parent page can forward cursor position directly
+// (e.g. when this file is used in an iframe behind other page content).
+window.pushCursor=addPt;
 
 var vis=!document.hidden;
 document.addEventListener('visibilitychange',function(){vis=!document.hidden;});

@@ -164,6 +164,7 @@ function ShardTravel({ count, onDone, badgeRef }: { count: number; onDone: () =>
 function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: typeof LIGHT; badgeRef: React.RefObject<HTMLDivElement>; bouncing: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isDark = t === DARK;
   const lvlIdx = getLevel(shards);
   const level = lvlIdx >= 0 ? LEVELS[lvlIdx] : null;
   const nextLevel = LEVELS[lvlIdx + 1] || null;
@@ -179,10 +180,10 @@ function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: type
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <div ref={badgeRef} onClick={() => setOpen(o => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: isDark ? "rgb(247, 237, 255)" : t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
         <span style={{ fontSize: 16 }}>{level?.emoji || "🕯️"}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: t.text, fontFamily: F.body }}>{shards}</span>
-        <span style={{ fontSize: 11, color: t.brand }}>✦</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "rgb(31, 18, 46)" : t.text, fontFamily: F.body }}>{shards}</span>
+        <span style={{ fontSize: 11, color: isDark ? "rgb(31, 18, 46)" : t.brand }}>✦</span>
       </div>
       {open && (
         <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 200, background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 440, boxShadow: t.shadow }}>
@@ -582,7 +583,7 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
         {isResults && <VersionButton versions={critique.versions} activeIdx={activeVersionIdx} onChange={onVersionChange} onUploadNew={() => fileRef.current?.click()} t={t} />}
         {!isResults && (
-          <button onClick={onToggleDark} style={{ background: isLanding ? (dark ? t.bgHover : "rgb(248, 246, 255)") : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: t.textMuted, fontSize: 12, fontFamily: F.body }}>
+          <button onClick={onToggleDark} style={{ background: dark ? "rgb(247, 237, 255)" : isLanding ? "rgb(248, 246, 255)" : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: dark ? "rgb(31, 18, 46)" : t.textMuted, fontSize: 12, fontFamily: F.body }}>
             {dark ? "☀ Light" : "◐ Dark"}
           </button>
         )}
@@ -1171,13 +1172,28 @@ function LilacMistBackground({ dark }: { dark: boolean }) {
     if (win) win.MIST_DARK = dark;
   }, [dark]);
 
+  // The iframe stays pointer-events:none (see below), so the browser never
+  // dispatches real pointer events inside it. Forward cursor position from
+  // the parent document instead of relying on CSS hit-testing reaching it.
+  useEffect(() => {
+    const handleMove = (e: PointerEvent) => {
+      const iframe = iframeRef.current;
+      const win = iframe?.contentWindow as (Window & { pushCursor?: (x: number, y: number) => void }) | undefined | null;
+      if (!iframe || !win?.pushCursor) return;
+      const rect = iframe.getBoundingClientRect();
+      win.pushCursor(e.clientX - rect.left, e.clientY - rect.top);
+    };
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handleMove);
+  }, []);
+
   return (
     <iframe
       ref={iframeRef}
       title="Background"
       src={`${import.meta.env.BASE_URL}lilac-mist-bg.html`}
       onLoad={e => { (e.currentTarget.contentWindow as Window & { MIST_DARK?: boolean }).MIST_DARK = dark; }}
-      style={{ position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", border: "none" }}
+      style={{ position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", border: "none", pointerEvents: "none" }}
     />
   );
 }
@@ -1188,8 +1204,6 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
 
   return (
     <div style={{ flex: 1, minHeight: 0, height: "100%", overflowY: "auto", position: "relative", isolation: "isolate" }}>
-      <LilacMistBackground dark={isDark} />
-
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "none" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640, pointerEvents: "auto" }}>
@@ -1371,6 +1385,7 @@ export default function App() {
       />
 
       <div style={{ flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+        {!loading && currentView === "landing" && <LilacMistBackground dark={dark} />}
         {!loading && (
           <TopNav
             t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
@@ -1382,7 +1397,7 @@ export default function App() {
             onGoHome={goHome}
           />
         )}
-        <div style={{ flex: 1, minHeight: 0, height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, minHeight: 0, height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
           {loading ? (
             <LoadingScreen t={t} />
           ) : (view === "newProject" || view === "editProject") ? (
