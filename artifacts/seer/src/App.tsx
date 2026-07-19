@@ -180,7 +180,7 @@ function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: type
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <div ref={badgeRef} onClick={() => setOpen(o => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: isDark ? "rgb(247, 237, 255)" : t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: isDark ? "rgb(248, 246, 255)" : t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
         <span style={{ fontSize: 16 }}>{level?.emoji || "🕯️"}</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "rgb(31, 18, 46)" : t.text, fontFamily: F.body }}>{shards}</span>
         <span style={{ fontSize: 11, color: isDark ? "rgb(31, 18, 46)" : t.brand }}>✦</span>
@@ -583,7 +583,7 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
         {isResults && <VersionButton versions={critique.versions} activeIdx={activeVersionIdx} onChange={onVersionChange} onUploadNew={() => fileRef.current?.click()} t={t} />}
         {!isResults && (
-          <button onClick={onToggleDark} style={{ background: dark ? "rgb(247, 237, 255)" : isLanding ? "rgb(248, 246, 255)" : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: dark ? "rgb(31, 18, 46)" : t.textMuted, fontSize: 12, fontFamily: F.body }}>
+          <button onClick={onToggleDark} style={{ background: dark || isLanding ? "rgb(248, 246, 255)" : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: dark ? "rgb(31, 18, 46)" : t.textMuted, fontSize: 12, fontFamily: F.body }}>
             {dark ? "☀ Light" : "◐ Dark"}
           </button>
         )}
@@ -1193,7 +1193,7 @@ function LilacMistBackground({ dark }: { dark: boolean }) {
       title="Background"
       src={`${import.meta.env.BASE_URL}lilac-mist-bg.html`}
       onLoad={e => { (e.currentTarget.contentWindow as Window & { MIST_DARK?: boolean }).MIST_DARK = dark; }}
-      style={{ position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", border: "none", pointerEvents: "none" }}
+      style={{ position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", border: "none", pointerEvents: "none", opacity: dark ? 0.75 : 1 }}
     />
   );
 }
@@ -1215,13 +1215,13 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
           </p>
         </div>
 
-        <div style={{ width: "100%", maxWidth: 560, background: isDark ? "rgba(31,19,45,0.75)" : "rgba(255,255,255,0.75)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
+        <div style={{ width: "100%", maxWidth: 560, background: isDark ? "rgba(31,19,45,0.75)" : "rgba(255,255,255,0.75)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
           <UploadZone image={image} onFile={setImage} onReset={() => setImage(null)} t={t} glass />
         </div>
 
         {image && (
           <FadeIn delay={80}>
-            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: isDark ? "rgba(31,19,45,0.75)" : "rgba(255,255,255,0.75)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
+            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: isDark ? "rgba(31,19,45,0.75)" : "rgba(255,255,255,0.75)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
               <ContextForm onReady={fd => onFormReady(image, fd)} t={t} projectCtx={projectCtx} />
             </div>
           </FadeIn>
@@ -1386,9 +1386,6 @@ export default function App() {
 
       <div style={{ flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {!loading && currentView === "landing" && <LilacMistBackground dark={dark} />}
-        {!loading && currentView === "landing" && (
-          <p style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 0, textAlign: "center", fontFamily: F.display, fontSize: 1064, lineHeight: 1, color: dark ? "rgba(71, 51, 97, 0.2)" : "rgba(42, 10, 83, 0.2)", letterSpacing: 0, margin: 0, pointerEvents: "none", userSelect: "none" }}>Seer</p>
-        )}
         {!loading && (
           <TopNav
             t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
