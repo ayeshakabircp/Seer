@@ -407,7 +407,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
         ) : (
           <>
             <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
-              <span style={{ fontSize: 30, fontFamily: F.display, color: t === DARK ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", letterSpacing: "0.01em" }}>Seer</span>
+              <span style={{ fontSize: 28, fontFamily: F.display, color: t === DARK ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", letterSpacing: "0.01em" }}>Seer</span>
             </button>
             <button onClick={onToggleCollapse} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 2, display: "flex" }}><Icons.sidebar /></button>
           </>
@@ -609,8 +609,8 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
   const isDark = t === DARK;
   // In light mode the glass card stays a light frosted surface regardless
   // of the page theme; in dark mode it switches to the solid dark surface.
-  const cardBg = isDark ? t.bgCard : glass ? "rgba(255,255,255,0.35)" : t.bgCard;
-  const tabActiveBg = isDark ? t.bgCard : glass ? "rgba(255,255,255,0.75)" : t.bgCard;
+  const cardBg = isDark ? "rgba(31,19,45,0.75)" : glass ? "rgba(255,255,255,0.35)" : t.bgCard;
+  const tabActiveBg = isDark ? "rgba(31,19,45,0.75)" : glass ? "rgba(255,255,255,0.75)" : t.bgCard;
   const tabBg = isDark ? t.bgHover : glass ? "rgba(255,255,255,0.25)" : t.bgHover;
   const dropBg = drag ? (isDark ? t.bgHover : glass ? "rgba(196,160,232,0.15)" : t.bgHover) : cardBg;
   const glassText = glass && !isDark ? "#2d1060" : t.text;
@@ -650,7 +650,7 @@ function UploadZone({ image, onFile, onReset, t, glass }: { image: string | null
           <input id="seer-fi" type="file" accept="image/*" style={{ display: "none" }} onChange={e => process(e.target.files?.[0])} />
         </div>
       ) : (
-        <div style={{ width: "100%", padding: 20, border: `1px solid ${glass && !isDark ? "rgba(196,160,232,0.4)" : t.border}`, borderRadius: 14, background: glass && !isDark ? "rgba(255,255,255,0.3)" : t.bgCard, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ width: "100%", padding: 20, border: `1px solid ${glass && !isDark ? "rgba(196,160,232,0.4)" : t.border}`, borderRadius: 14, background: glass && !isDark ? "rgba(255,255,255,0.3)" : glass ? "rgba(31,19,45,0.75)" : t.bgCard, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <input type="text" placeholder="https://www.figma.com/file/..." value={figmaUrl} onChange={e => setFigmaUrl(e.target.value)}
               style={{ flex: 1, padding: "10px 14px", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontSize: 14, outline: "none", fontFamily: F.body }} />
@@ -1212,17 +1212,17 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
             Upload your design.<br />Get real UX <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
           <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0 }}>
-            Let Seer read your design's future. 🔮
+            Let Seer read your design's future 🔮
           </p>
         </div>
 
-        <div style={{ width: "100%", maxWidth: 560, background: isDark ? t.bgCard : "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
+        <div style={{ width: "100%", maxWidth: 560, background: isDark ? "rgba(31,19,45,0.75)" : "rgba(255,255,255,0.75)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
           <UploadZone image={image} onFile={setImage} onReset={() => setImage(null)} t={t} glass />
         </div>
 
         {image && (
           <FadeIn delay={80}>
-            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: isDark ? t.bgCard : "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
+            <div style={{ width: "100%", maxWidth: 560, marginTop: 16, background: isDark ? "rgba(31,19,45,0.75)" : "rgba(255,255,255,0.75)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: isDark ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,0.7)", borderRadius: 20, padding: 24, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.35)" : "0 8px 32px rgba(180,140,230,0.15), inset 0 1px 0 rgba(255,255,255,0.8)", position: "relative", zIndex: 10, pointerEvents: "auto" }}>
               <ContextForm onReady={fd => onFormReady(image, fd)} t={t} projectCtx={projectCtx} />
             </div>
           </FadeIn>
@@ -1387,6 +1387,9 @@ export default function App() {
 
       <div style={{ flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {!loading && currentView === "landing" && <LilacMistBackground dark={dark} />}
+        {!loading && currentView === "landing" && (
+          <p style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 0, textAlign: "center", fontFamily: F.display, fontSize: 1064, color: dark ? "rgba(71, 51, 97, 0.2)" : "rgba(42, 10, 83, 0.2)", letterSpacing: 0, margin: 0, pointerEvents: "none", userSelect: "none" }}>Seer</p>
+        )}
         {!loading && (
           <TopNav
             t={t} dark={dark} onToggleDark={() => setDark(d => !d)}
