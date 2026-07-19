@@ -1207,8 +1207,7 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "none" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640, pointerEvents: "auto" }}>
-          <p style={{ fontFamily: F.display, fontSize: 20, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "80px 0 4px", lineHeight: 1 }}>Seer</p>
-          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "0 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "80px 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
             Upload your design.<br />Get real UX <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
           <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0 }}>
@@ -1388,7 +1387,7 @@ export default function App() {
       <div style={{ flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {!loading && currentView === "landing" && <LilacMistBackground dark={dark} />}
         {!loading && currentView === "landing" && (
-          <p style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 0, textAlign: "center", fontFamily: F.display, fontSize: 1064, color: dark ? "rgba(71, 51, 97, 0.2)" : "rgba(42, 10, 83, 0.2)", letterSpacing: 0, margin: 0, pointerEvents: "none", userSelect: "none" }}>Seer</p>
+          <p style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 0, textAlign: "center", fontFamily: F.display, fontSize: 1064, lineHeight: 1, color: dark ? "rgba(71, 51, 97, 0.2)" : "rgba(42, 10, 83, 0.2)", letterSpacing: 0, margin: 0, pointerEvents: "none", userSelect: "none" }}>Seer</p>
         )}
         {!loading && (
           <TopNav
