@@ -37,8 +37,8 @@ var FRAG=
 "vec3 C3=vec3(0.812,0.702,0.910);\n"+ // #CFB3E8
 "vec3 CW=vec3(0.976,0.957,1.000);\n"+ // lilac-white highlight #F9F4FF
 "vec3 CP=vec3(0.988,0.906,0.937);\n"+ // pastel pink glow #FCE7EF
-// dark-mode palette (#1a0a2e / #241040 / #2f1655 / #3d1f6e / soft brand)
-"vec3 K3=vec3(.102,.039,.180),K2=vec3(.141,.063,.251),K1=vec3(.184,.086,.333),K0=vec3(.239,.122,.431),KW=vec3(.427,.247,.690);\n"+
+// dark-mode palette (#150824 base, #291640 / #2e1553 highlights)
+"vec3 K3=vec3(.08235,.03137,.14118),K2=vec3(.08235,.03137,.14118),K1=vec3(.16078,.08627,.25098),K0=vec3(.18039,.08235,.32549),KW=vec3(.18039,.08235,.32549);\n"+
 "vec3 pal(float t){\n"+
 " vec3 a3=mix(C3,K3,uDark),a2=mix(C2,K2,uDark),a1=mix(C1,K1,uDark),a0=mix(C0,K0,uDark),aw=mix(CW,KW,uDark);\n"+
 " vec3 c=mix(a3,a2,smoothstep(0.,.35,t));\n"+

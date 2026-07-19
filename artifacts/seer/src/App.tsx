@@ -13,7 +13,7 @@ type Project = { id: string; name: string; productType: string; primaryUsers: st
 const F = {
   body:    "'Chiron GoRound TC', 'Lato', sans-serif",
   serif:   "'Instrument Serif', serif",
-  display: "'Climate Crisis', sans-serif",
+  display: "'Are You Serious', cursive",
   mono:    "monospace",
 };
 
@@ -407,7 +407,7 @@ function LeftPanel({ t, collapsed, onToggleCollapse, projects, critiques, active
         ) : (
           <>
             <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
-              <span style={{ fontSize: 15, fontFamily: F.display, color: t.text, letterSpacing: "0.01em" }}>Seer</span>
+              <span style={{ fontSize: 30, fontFamily: F.display, color: t === DARK ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", letterSpacing: "0.01em" }}>Seer</span>
             </button>
             <button onClick={onToggleCollapse} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: 2, display: "flex" }}><Icons.sidebar /></button>
           </>
@@ -1207,11 +1207,12 @@ function LandingArea({ t, projectCtx, onFormReady }: { t: typeof LIGHT; projectC
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", padding: "72px 32px 100px", minHeight: "100%", pointerEvents: "none" }}>
         <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640, pointerEvents: "auto" }}>
-          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "80px 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
-            Upload your design.<br />Get real <em style={{ fontStyle: "italic" }}>critique.</em>
+          <p style={{ fontFamily: F.display, fontSize: 20, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "80px 0 4px", lineHeight: 1 }}>Seer</p>
+          <h1 style={{ fontFamily: F.serif, fontSize: 72, fontWeight: 400, color: isDark ? "rgb(247, 237, 255)" : "rgb(42, 10, 83)", margin: "0 0 8px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+            Upload your design.<br />Get real UX <em style={{ fontStyle: "italic" }}>critique.</em>
           </h1>
           <p style={{ fontFamily: F.body, fontSize: 16, color: t.textSec, margin: 0, letterSpacing: 0 }}>
-            Structured, heuristic-based feedback — in seconds.
+            Let Seer read your design's future. 🔮
           </p>
         </div>
 
@@ -1351,7 +1352,7 @@ export default function App() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: dark ? DARK.bg : "#f8f5ff" }}>
       <style>{GLOBAL_CSS}</style>
-      <link href="https://fonts.googleapis.com/css2?family=Climate+Crisis&family=Instrument+Serif:ital@0;1&family=Chiron+GoRound+TC&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Are+You+Serious&family=Instrument+Serif:ital@0;1&family=Chiron+GoRound+TC&display=swap" rel="stylesheet" />
 
       {unlockOverlay && <LevelUnlockOverlay level={unlockOverlay} onDone={() => setUnlockOverlay(null)} />}
       {shardTravelCount > 0 && <ShardTravel count={shardTravelCount} onDone={() => setShardTravelCount(0)} badgeRef={badgeRef} />}
