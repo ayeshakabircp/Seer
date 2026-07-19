@@ -39,7 +39,7 @@ const LIGHT = {
 // critical  #ff8080   6.8:1 ✓   minor    #ffc044   9.2:1 ✓
 // passed    #4ddd88   8.7:1 ✓
 const DARK = {
-  bg: "#1a0a2e", bgCard: "#1f132d", bgHover: "#2a0f4e", bgOverlay: "rgba(0,0,0,0.55)",
+  bg: "#110024", bgCard: "#1f132d", bgHover: "#2a0f4e", bgOverlay: "rgba(0,0,0,0.55)",
   brand: "#9b4fff", border: "#3c1f64", shadow: "0 2px 16px rgba(0,0,0,0.35)",
   text: "#f7edff", textSec: "#e0d8f8", textMuted: "#c0b0e0", textAcc: "#d4b8ff",
   critical: "#ff8080", minor: "#ffc044", passed: "#4ddd88", downloadBg: "#2a0f4e",
@@ -180,7 +180,7 @@ function ScoreBadge({ shards, t, badgeRef, bouncing }: { shards: number; t: type
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <div ref={badgeRef} onClick={() => setOpen(o => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: isDark ? "rgb(248, 246, 255)" : t.bgHover, border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", height: 30, boxSizing: "border-box", background: "rgb(248, 246, 255)", border: `1px solid ${t.border}`, borderRadius: 20, cursor: "pointer", animation: bouncing ? "badgeBounce 0.5s ease" : "none", userSelect: "none" }}>
         <span style={{ fontSize: 16 }}>{level?.emoji || "🕯️"}</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "rgb(31, 18, 46)" : t.text, fontFamily: F.body }}>{shards}</span>
         <span style={{ fontSize: 11, color: isDark ? "rgb(31, 18, 46)" : t.brand }}>✦</span>
@@ -583,7 +583,7 @@ function TopNav({ t, dark, onToggleDark, shards, badgeRef, badgeBouncing, view, 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
         {isResults && <VersionButton versions={critique.versions} activeIdx={activeVersionIdx} onChange={onVersionChange} onUploadNew={() => fileRef.current?.click()} t={t} />}
         {!isResults && (
-          <button onClick={onToggleDark} style={{ background: dark || isLanding ? "rgb(248, 246, 255)" : "none", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: dark ? "rgb(31, 18, 46)" : t.textMuted, fontSize: 12, fontFamily: F.body }}>
+          <button onClick={onToggleDark} style={{ background: "rgb(248, 246, 255)", border: `1px solid ${t.border}`, borderRadius: 16, padding: "0 12px", height: 30, boxSizing: "border-box", display: "flex", alignItems: "center", cursor: "pointer", color: "rgb(31, 18, 46)", fontSize: 12, fontFamily: F.body }}>
             {dark ? "☀ Light" : "◐ Dark"}
           </button>
         )}

@@ -184,7 +184,7 @@ function frame(){
   var wantDark=window.MIST_DARK!=null?(window.MIST_DARK?1:0):(T.darkMode?1:0);
   darkNow+=(wantDark-darkNow)*0.08;
   gl.uniform1f(uDark,darkNow);
-  gl.uniform1f(uSpark,(T.sparkles==null||T.sparkles)?(T.sparkleAmount!=null?T.sparkleAmount:0.5):0);
+  gl.uniform1f(uSpark,((T.sparkles==null||T.sparkles)?(T.sparkleAmount!=null?T.sparkleAmount:0.5):0)*(1-0.25*darkNow));
   gl.uniform1f(uGrain,T.grain!=null?T.grain:0.05);
   var mistDark=hexToRgb(T.mistDarkColor,[0.18039,0.08235,0.32549]);
   var rimDark=hexToRgb(T.rimDarkColor,[0.16078,0.08627,0.25098]);
