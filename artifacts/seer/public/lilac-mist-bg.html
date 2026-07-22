@@ -186,8 +186,8 @@ function frame(){
   gl.uniform1f(uDark,darkNow);
   gl.uniform1f(uSpark,((T.sparkles==null||T.sparkles)?(T.sparkleAmount!=null?T.sparkleAmount:0.5):0)*(1-0.25*darkNow));
   gl.uniform1f(uGrain,T.grain!=null?T.grain:0.05);
-  var mistDark=hexToRgb(T.mistDarkColor,[0.18039,0.08235,0.32549]);
-  var rimDark=hexToRgb(T.rimDarkColor,[0.16078,0.08627,0.25098]);
+  var mistDark=hexToRgb(T.mistDarkColor,[0.30980,0.11373,0.60000]);
+  var rimDark=hexToRgb(T.rimDarkColor,[0.30980,0.11373,0.60000]);
   gl.uniform3f(uMistDark,mistDark[0],mistDark[1],mistDark[2]);
   gl.uniform3f(uRimDark,rimDark[0],rimDark[1],rimDark[2]);
   gl.uniform4fv(uPts,ptData);
@@ -201,7 +201,7 @@ frame();
 // mistDarkColor / rimDarkColor: cursor-trail colors used only when dark mode
 // is active (hex strings, e.g. "#d4b8ff"). Live-tunable from the console —
 // no rebuild needed, changes apply on the next animation frame.
-window.TWEAKS = {"highlightSize":0.55,"mistSoftness":6,"mistAmount":1.5,"pinkGlow":0.6,"sparkles":true,"sparkleAmount":1,"grain":0.01,"darkMode":false,"mistDarkColor":"#2e1553","rimDarkColor":"#291640"};
+window.TWEAKS = {"highlightSize":0.55,"mistSoftness":6,"mistAmount":1.5,"pinkGlow":0.6,"sparkles":true,"sparkleAmount":1,"grain":0.01,"darkMode":false,"mistDarkColor":"#4F1D99","rimDarkColor":"#4F1D99"};
 </script>
 
 
